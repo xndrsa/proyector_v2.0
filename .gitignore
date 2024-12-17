@@ -1,5 +1,21 @@
-bp
-/bp
+# Entornos virtuales
+venv/
+.venv/
 
+# Variables de entorno
 .env
-*.pycache
+
+# Caché
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+
+bp/
+bp
+
+# Otros comunes (opcional)
+*.log
+*.sqlite3
+instance/
