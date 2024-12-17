@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
-from app.utils import load_bible_version, get_verse, load_song
-import os
+from app.utils import (
+    load_bible_version, get_verse, fetch_bible_versions, fetch_books, fetch_verses, load_song
+)
 
 bible_routes = Blueprint('bible', __name__)
 song_routes = Blueprint('song', __name__)
@@ -15,13 +16,20 @@ book_name_to_number = {
     'oseas': 28, 'joel': 29, 'amos': 30, 'abdias': 31, 'jonas': 32, 'miqueas': 33,
     'nahum': 34, 'habacuc': 35, 'sofonias': 36, 'ageo': 37, 'zacarias': 38, 'malaquias': 39,
     'mateo': 40, 'marcos': 41, 'lucas': 42, 'juan': 43, 'hechos': 44, 'romanos': 45,
-    '1_corintios': 46, '2_corintios': 47, 'gálatas': 48, 'efesios': 49, 'filipenses': 50,
+    '1_corintios': 46, '2_corintios': 47, 'galatas': 48, 'efesios': 49, 'filipenses': 50,
     'colosenses': 51, '1_tesalonicenses': 52, '2_tesalonicenses': 53, '1_timoteo': 54,
     '2_timoteo': 55, 'tito': 56, 'filemon': 57, 'hebreos': 58, 'santiago': 59, '1_pedro': 60,
     '2_pedro': 61, '1_juan': 62, '2_juan': 63, '3_juan': 64, 'judas': 65, 'apocalipsis': 66
 }
 
-@bible_routes.route('/bible/<version>/<book>/<chapter>/<verse>', methods=['GET'])
+@bible_routes.route('/versions', methods=['GET'])
+def get_versions():
+    versions = fetch_bible_versions()
+    if versions:
+        return jsonify(versions)
+    return jsonify({"error": "No se pudieron obtener las versiones"}), 500
+
+@bible_routes.route('/<version>/<book>/<chapter>/<verse>', methods=['GET'])
 def get_bible_verse(version, book, chapter, verse):
     book_number = book_name_to_number.get(book.lower())
     if not book_number:
@@ -39,8 +47,7 @@ def get_bible_verse(version, book, chapter, verse):
     except ValueError:
         return jsonify({"error": "El formato del capítulo o verso es incorrecto."}), 400
 
-
-@song_routes.route('/song/<category>/<song_name>', methods=['GET'])
+@song_routes.route('/<category>/<song_name>', methods=['GET'])
 def get_song_lyrics(category, song_name):
     if category not in ['lentas', 'rapidas']:
         return jsonify({"error": "Categoría no válida. Use 'lentas' o 'rapidas'."}), 400
