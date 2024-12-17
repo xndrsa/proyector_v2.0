@@ -1,14 +1,15 @@
 from flask import Flask
 from flask_cors import CORS
+from flasgger import Swagger
+from app.config import SWAGGER_TEMPLATE, APP_NAME, APP_VERSION
 
 def create_app():
     app = Flask(__name__)
     CORS(app, resources={r"/*": {"origins": "*"}})
 
-    # Importar rutas
-    from app.routes import bible_routes, song_routes
+    swagger = Swagger(app, template=SWAGGER_TEMPLATE)
 
-    # Registrar las rutas en el app
+    from app.routes import bible_routes, song_routes
     app.register_blueprint(bible_routes)
     app.register_blueprint(song_routes)
 

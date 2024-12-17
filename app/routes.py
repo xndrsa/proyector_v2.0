@@ -1,11 +1,9 @@
 from flask import Blueprint, jsonify, request
 from app.utils import load_bible_version, get_verse, load_song
-import os
 
 bible_routes = Blueprint('bible', __name__)
 song_routes = Blueprint('song', __name__)
 
-# Diccionario para traducir el nombre del libro al número
 book_name_to_number = {
     'genesis': 1, 'exodo': 2, 'levitico': 3, 'numeros': 4, 'deuteronomio': 5,
     'josue': 6, 'jueces': 7, 'rut': 8, '1_samuel': 9, '2_samuel': 10, '1_reyes': 11,
@@ -21,8 +19,55 @@ book_name_to_number = {
     '2_pedro': 61, '1_juan': 62, '2_juan': 63, '3_juan': 64, 'judas': 65, 'apocalipsis': 66
 }
 
+
 @bible_routes.route('/bible/<version>/<book>/<chapter>/<verse>', methods=['GET'])
 def get_bible_verse(version, book, chapter, verse):
+    """
+    Obtiene un versículo específico de la Biblia.
+
+    ---
+    parameters:
+      - name: version
+        in: path
+        type: string
+        required: true
+        description: Versión de la Biblia
+      - name: book
+        in: path
+        type: string
+        required: true
+        description: Nombre del libro
+      - name: chapter
+        in: path
+        type: integer
+        required: true
+        description: Número del capítulo
+      - name: verse
+        in: path
+        type: integer
+        required: true
+        description: Número del versículo
+    responses:
+      200:
+        description: Versículo encontrado
+        schema:
+          type: object
+          properties:
+            version:
+              type: string
+            book:
+              type: string
+            chapter:
+              type: integer
+            verse:
+              type: integer
+            text:
+              type: string
+      404:
+        description: Libro o versión no encontrados
+      400:
+        description: Formato de capítulo o versículo inválido
+    """
     book_number = book_name_to_number.get(book.lower())
     if not book_number:
         return jsonify({"error": "Libro no válido."}), 404
@@ -42,6 +87,40 @@ def get_bible_verse(version, book, chapter, verse):
 
 @song_routes.route('/song/<category>/<song_name>', methods=['GET'])
 def get_song_lyrics(category, song_name):
+    """
+    Obtiene la letra de una canción específica.
+
+    ---
+    parameters:
+      - name: category
+        in: path
+        type: string
+        required: true
+        description: Categoría de la canción
+      - name: song_name
+        in: path
+        type: string
+        required: true
+        description: Nombre del archivo de la canción
+    responses:
+      200:
+        description: Canción encontrada
+        schema:
+          type: object
+          properties:
+            song_name:
+              type: string
+            category:
+              type: string
+            lyrics:
+              type: array
+              items:
+                type: string
+      404:
+        description: Canción no encontrada
+      400:
+        description: Categoría inválida
+    """
     if category not in ['lentas', 'rapidas']:
         return jsonify({"error": "Categoría no válida. Use 'lentas' o 'rapidas'."}), 400
 
