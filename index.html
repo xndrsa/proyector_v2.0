@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biblia y Canciones</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            margin-bottom: 20px;
+        }
+        input, select, button {
+            margin: 5px;
+            padding: 8px;
+            font-size: 16px;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Consumo de API: Biblia y Canciones</h1>
+
+    <!-- Sección para consultar un verso de la Biblia -->
+    <div class="container">
+        <h2>Consultar un verso de la Biblia</h2>
+        <select id="bible-version">
+            <option value="reina_valera">Reina Valera 1960</option>
+            <option value="nvi">Nueva Versión Internacional</option>
+        </select>
+        <input type="text" id="bible-book" placeholder="Libro (ej: genesis)" />
+        <input type="number" id="bible-chapter" placeholder="Capítulo" />
+        <input type="number" id="bible-verse" placeholder="Verso" />
+        <button onclick="fetchBibleVerse()">Consultar</button>
+        <pre id="bible-result"></pre>
+    </div>
+
+    <!-- Sección para consultar la letra de una canción -->
+    <div class="container">
+        <h2>Consultar una canción</h2>
+        <select id="song-category">
+            <option value="lentas">Lentas</option>
+            <option value="rapidas">Rapidas</option>
+        </select>
+        <input type="text" id="song-name" placeholder="Nombre de la canción" />
+        <button onclick="fetchSongLyrics()">Consultar</button>
+        <pre id="song-result"></pre>
+    </div>
+                            <!-- esta direccion puede ser diferente -->
+    <script>
+        const API_BASE_URL = "https://da61-181-209-195-22.ngrok-free.app/";
+
+        async function fetchBibleVerse() {
+            const version = document.getElementById('bible-version').value;
+            const book = document.getElementById('bible-book').value;
+            const chapter = document.getElementById('bible-chapter').value;
+            const verse = document.getElementById('bible-verse').value;
+
+            const url = `${API_BASE_URL}/bible/${version}/${book}/${chapter}/${verse}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                document.getElementById('bible-result').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('bible-result').textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function fetchSongLyrics() {
+            const category = document.getElementById('song-category').value;
+            const songName = document.getElementById('song-name').value;
+
+            const url = `${API_BASE_URL}/song/${category}/${songName}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                document.getElementById('song-result').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('song-result').textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
