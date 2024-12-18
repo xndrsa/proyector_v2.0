@@ -1,0 +1,522 @@
+{
+    "GN": {
+        "names": [
+            "Genesis"
+        ],
+        "chapters": 50,
+        "testament": "Antiguo Testamento"
+    },
+    "EX": {
+        "names": [
+            "Exodo",
+            "Exodus"
+        ],
+        "chapters": 40,
+        "testament": "Antiguo Testamento"
+    },
+    "LV": {
+        "names": [
+            "Levitico",
+            "Leviticus"
+        ],
+        "chapters": 27,
+        "testament": "Antiguo Testamento"
+    },
+    "NM": {
+        "names": [
+            "Numeros",
+            "Numbers"
+        ],
+        "chapters": 36,
+        "testament": "Antiguo Testamento"
+    },
+    "DT": {
+        "names": [
+            "Deuteronomio",
+            "Deuteronomy"
+        ],
+        "chapters": 34,
+        "testament": "Antiguo Testamento"
+    },
+    "JOS": {
+        "names": [
+            "Josue",
+            "Joshua"
+        ],
+        "chapters": 24,
+        "testament": "Antiguo Testamento"
+    },
+    "JUE": {
+        "names": [
+            "Jueces",
+            "Judges"
+        ],
+        "chapters": 21,
+        "testament": "Antiguo Testamento"
+    },
+    "RT": {
+        "names": [
+            "Rut",
+            "Ruth"
+        ],
+        "chapters": 4,
+        "testament": "Antiguo Testamento"
+    },
+    "1S": {
+        "names": [
+            "1-Samuel"
+        ],
+        "chapters": 31,
+        "testament": "Antiguo Testamento"
+    },
+    "2S": {
+        "names": [
+            "2-Samuel"
+        ],
+        "chapters": 24,
+        "testament": "Antiguo Testamento"
+    },
+    "1R": {
+        "names": [
+            "1-Reyes",
+            "1-Kings"
+        ],
+        "chapters": 22,
+        "testament": "Antiguo Testamento"
+    },
+    "2R": {
+        "names": [
+            "2-Reyes",
+            "2-Kings"
+        ],
+        "chapters": 25,
+        "testament": "Antiguo Testamento"
+    },
+    "1CR": {
+        "names": [
+            "1-Cronicas",
+            "1-Chronicles"
+        ],
+        "chapters": 29,
+        "testament": "Antiguo Testamento"
+    },
+    "2CR": {
+        "names": [
+            "2-Cronicas",
+            "2-Chronicles"
+        ],
+        "chapters": 36,
+        "testament": "Antiguo Testamento"
+    },
+    "ESD": {
+        "names": [
+            "Esdras",
+            "Ezra"
+        ],
+        "chapters": 10,
+        "testament": "Antiguo Testamento"
+    },
+    "NEH": {
+        "names": [
+            "Nehemias",
+            "Nehemiah"
+        ],
+        "chapters": 13,
+        "testament": "Antiguo Testamento"
+    },
+    "EST": {
+        "names": [
+            "Ester",
+            "Esther"
+        ],
+        "chapters": 10,
+        "testament": "Antiguo Testamento"
+    },
+    "JOB": {
+        "names": [
+            "Job"
+        ],
+        "chapters": 42,
+        "testament": "Antiguo Testamento"
+    },
+    "SAL": {
+        "names": [
+            "Salmos",
+            "Psalms"
+        ],
+        "chapters": 150,
+        "testament": "Antiguo Testamento"
+    },
+    "PR": {
+        "names": [
+            "Proverbios",
+            "Proverbs"
+        ],
+        "chapters": 31,
+        "testament": "Antiguo Testamento"
+    },
+    "EC": {
+        "names": [
+            "Eclesiastes",
+            "Ecclesiastes"
+        ],
+        "chapters": 12,
+        "testament": "Antiguo Testamento"
+    },
+    "CNT": {
+        "names": [
+            "Cantares",
+            "Song of Solomon"
+        ],
+        "chapters": 8,
+        "testament": "Antiguo Testamento"
+    },
+    "IS": {
+        "names": [
+            "Isaias",
+            "Isaiah"
+        ],
+        "chapters": 66,
+        "testament": "Antiguo Testamento"
+    },
+    "JER": {
+        "names": [
+            "Jeremias",
+            "Jeremiah"
+        ],
+        "chapters": 52,
+        "testament": "Antiguo Testamento"
+    },
+    "LM": {
+        "names": [
+            "Lamentaciones",
+            "Lamentations"
+        ],
+        "chapters": 5,
+        "testament": "Antiguo Testamento"
+    },
+    "EZ": {
+        "names": [
+            "Ezequiel",
+            "Ezekiel"
+        ],
+        "chapters": 48,
+        "testament": "Antiguo Testamento"
+    },
+    "DN": {
+        "names": [
+            "Daniel"
+        ],
+        "chapters": 12,
+        "testament": "Antiguo Testamento"
+    },
+    "OS": {
+        "names": [
+            "Oseas",
+            "Hosea"
+        ],
+        "chapters": 14,
+        "testament": "Antiguo Testamento"
+    },
+    "JL": {
+        "names": [
+            "Joel"
+        ],
+        "chapters": 3,
+        "testament": "Antiguo Testamento"
+    },
+    "AM": {
+        "names": [
+            "Amos"
+        ],
+        "chapters": 9,
+        "testament": "Antiguo Testamento"
+    },
+    "ABD": {
+        "names": [
+            "Abdias",
+            "Obadiah"
+        ],
+        "chapters": 1,
+        "testament": "Antiguo Testamento"
+    },
+    "JON": {
+        "names": [
+            "Jonas",
+            "Jonah"
+        ],
+        "chapters": 4,
+        "testament": "Antiguo Testamento"
+    },
+    "MI": {
+        "names": [
+            "Miqueas",
+            "Micah"
+        ],
+        "chapters": 7,
+        "testament": "Antiguo Testamento"
+    },
+    "NAH": {
+        "names": [
+            "Nahum"
+        ],
+        "chapters": 3,
+        "testament": "Antiguo Testamento"
+    },
+    "HAB": {
+        "names": [
+            "Habacuc",
+            "Habakkuk"
+        ],
+        "chapters": 3,
+        "testament": "Antiguo Testamento"
+    },
+    "SOF": {
+        "names": [
+            "Sofonias",
+            "Zephaniah"
+        ],
+        "chapters": 3,
+        "testament": "Antiguo Testamento"
+    },
+    "HAG": {
+        "names": [
+            "Hageo",
+            "Haggai"
+        ],
+        "chapters": 2,
+        "testament": "Antiguo Testamento"
+    },
+    "ZAC": {
+        "names": [
+            "Zacarias",
+            "Zechariah"
+        ],
+        "chapters": 14,
+        "testament": "Antiguo Testamento"
+    },
+    "MAL": {
+        "names": [
+            "Malaquias",
+            "Malachi"
+        ],
+        "chapters": 4,
+        "testament": "Antiguo Testamento"
+    },
+    "MT": {
+        "names": [
+            "Mateo",
+            "Matthew"
+        ],
+        "chapters": 28,
+        "testament": "Nuevo Testamento"
+    },
+    "MR": {
+        "names": [
+            "Marcos",
+            "Mark"
+        ],
+        "chapters": 16,
+        "testament": "Nuevo Testamento"
+    },
+    "LC": {
+        "names": [
+            "Lucas",
+            "Luke"
+        ],
+        "chapters": 24,
+        "testament": "Nuevo Testamento"
+    },
+    "JN": {
+        "names": [
+            "Juan",
+            "John"
+        ],
+        "chapters": 21,
+        "testament": "Nuevo Testamento"
+    },
+    "HCH": {
+        "names": [
+            "Hechos",
+            "Acts"
+        ],
+        "chapters": 28,
+        "testament": "Nuevo Testamento"
+    },
+    "RO": {
+        "names": [
+            "Romanos",
+            "Romans"
+        ],
+        "chapters": 16,
+        "testament": "Nuevo Testamento"
+    },
+    "1CO": {
+        "names": [
+            "1-Corintios",
+            "Corinthians"
+        ],
+        "chapters": 16,
+        "testament": "Nuevo Testamento"
+    },
+    "2CO": {
+        "names": [
+            "2-Corintios",
+            "2-Corinthians"
+        ],
+        "chapters": 13,
+        "testament": "Nuevo Testamento"
+    },
+    "GA": {
+        "names": [
+            "Galatas",
+            "Galatians"
+        ],
+        "chapters": 6,
+        "testament": "Nuevo Testamento"
+    },
+    "EF": {
+        "names": [
+            "Efesios",
+            "Ephesians"
+        ],
+        "chapters": 6,
+        "testament": "Nuevo Testamento"
+    },
+    "FIL": {
+        "names": [
+            "Filipenses",
+            "Philippians"
+        ],
+        "chapters": 4,
+        "testament": "Nuevo Testamento"
+    },
+    "COL": {
+        "names": [
+            "Colosenses",
+            "Colossians"
+        ],
+        "chapters": 4,
+        "testament": "Nuevo Testamento"
+    },
+    "1TS": {
+        "names": [
+            "1-Tesalonicenses",
+            "1-Thessalonians"
+        ],
+        "chapters": 5,
+        "testament": "Nuevo Testamento"
+    },
+    "2TS": {
+        "names": [
+            "2-Tesalonicenses",
+            "2-Thessalonians"
+        ],
+        "chapters": 3,
+        "testament": "Nuevo Testamento"
+    },
+    "1TI": {
+        "names": [
+            "1-Timoteo",
+            "Timothy"
+        ],
+        "chapters": 6,
+        "testament": "Nuevo Testamento"
+    },
+    "2TI": {
+        "names": [
+            "2-Timoteo",
+            "2-Timothy"
+        ],
+        "chapters": 4,
+        "testament": "Nuevo Testamento"
+    },
+    "TIT": {
+        "names": [
+            "Tito",
+            "Titus"
+        ],
+        "chapters": 3,
+        "testament": "Nuevo Testamento"
+    },
+    "FLM": {
+        "names": [
+            "Filemon",
+            "Philemon"
+        ],
+        "chapters": 1,
+        "testament": "Nuevo Testamento"
+    },
+    "HE": {
+        "names": [
+            "Hebreos",
+            "Hebrews"
+        ],
+        "chapters": 13,
+        "testament": "Nuevo Testamento"
+    },
+    "STG": {
+        "names": [
+            "Santiago",
+            "James"
+        ],
+        "chapters": 5,
+        "testament": "Nuevo Testamento"
+    },
+    "1P": {
+        "names": [
+            "1-Pedro",
+            "1-Peter"
+        ],
+        "chapters": 5,
+        "testament": "Nuevo Testamento"
+    },
+    "2P": {
+        "names": [
+            "2-Pedro",
+            "2-Peter"
+        ],
+        "chapters": 3,
+        "testament": "Nuevo Testamento"
+    },
+    "1JN": {
+        "names": [
+            "1-Juan",
+            "1-John"
+        ],
+        "chapters": 5,
+        "testament": "Nuevo Testamento"
+    },
+    "2JN": {
+        "names": [
+            "2-Juan",
+            "2-John"
+        ],
+        "chapters": 1,
+        "testament": "Nuevo Testamento"
+    },
+    "3JN": {
+        "names": [
+            "3-Juan",
+            "3-John"
+        ],
+        "chapters": 1,
+        "testament": "Nuevo Testamento"
+    },
+    "JUD": {
+        "names": [
+            "Judas",
+            "Jude"
+        ],
+        "chapters": 1,
+        "testament": "Nuevo Testamento"
+    },
+    "AP": {
+        "names": [
+            "Apocalipsis",
+            "Revelation"
+        ],
+        "chapters": 22,
+        "testament": "Nuevo Testamento"
+    }
+}

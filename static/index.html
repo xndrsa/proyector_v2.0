@@ -27,12 +27,16 @@
 <body>
     <h1>Consumo de API: Biblia y Canciones</h1>
 
-    <!-- Sección para consultar un verso de la Biblia -->
+    <!-- TODO Sección para consultar un verso de la Biblia, esta opcion deberia de jalar versiones de la api, hay ya una funcion, la idea es que al momento de haber una nueva aparezca de una vez -->
     <div class="container">
         <h2>Consultar un verso de la Biblia</h2>
         <select id="bible-version">
-            <option value="reina_valera">Reina Valera 1960</option>
-            <option value="nvi">Nueva Versión Internacional</option>
+            <option value="rv1960">Reina Valera 1960</option>
+            <option value="rv1995">Reina Valera 1995</option>
+            <option value="nvi">Nueva version internacional</option>
+            <option value="dhh">Dios habla hoy</option>
+            <option value="pdt">Palabra de Dios para todos</option>
+    <!-- TODO Sección para consultar los libros, hay un archivo .json en el folder de bibles con los libros -->
         </select>
         <input type="text" id="bible-book" placeholder="Libro (ej: genesis)" />
         <input type="number" id="bible-chapter" placeholder="Capítulo" />
@@ -52,7 +56,7 @@
         <button onclick="fetchSongLyrics()">Consultar</button>
         <pre id="song-result"></pre>
     </div>
-                            <!-- esta direccion puede ser diferente -->
+                            <!-- esta direccion puede ser diferente, ARREGLE LA const url, ya que tiene otro orden, el problema es que no lo muestra el Front TODO -->
     <script>
         const API_BASE_URL = "http://127.0.0.1:5000/";
 
@@ -62,7 +66,7 @@
             const chapter = document.getElementById('bible-chapter').value;
             const verse = document.getElementById('bible-verse').value;
 
-            const url = `${API_BASE_URL}/bible/${version}/${book}/${chapter}/${verse}`;
+            const url = `${API_BASE_URL}/bible/read/${version}/${book}/${chapter}/${verse}`;
             try {
                 const response = await fetch(url);
                 const data = await response.json();
