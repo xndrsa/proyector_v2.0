@@ -1,0 +1,21 @@
+# Entornos virtuales
+venv/
+.venv/
+
+# Variables de entorno
+.env
+
+# Caché
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+
+bp/
+bp
+
+# Otros comunes (opcional)
+*.log
+*.sqlite3
+instance/
