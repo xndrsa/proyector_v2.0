@@ -1,5 +1,6 @@
 from flask_restx import Namespace, Resource, fields, reqparse
-from app.utils import fetch_bible_versions, fetch_verses, load_song
+from app.utils import fetch_bible_versions, fetch_verses, LyricsService
+
 
 # Namespaces
 bible_ns = Namespace('bible', description='Operaciones para la Biblia')
@@ -61,22 +62,26 @@ class BibleVerse(Resource):
         except ValueError:
             bible_ns.abort(400, "El formato del capítulo, verso o rango es incorrecto.")
 
-@song_ns.route('/<string:category>/<string:song_name>')
-class SongLyrics(Resource):
+
+################### Need to adjust, I need to get the song id to get the data
+@song_ns.route('/<string:category>/<string:artist>/<string:song_name>')
+def get_songs():
+    service = LyricsService()
+    query_results = service.search_lyrics(query="dios es real miel san marcos")
+    for result in query_results:
+        print(f"ID: {result['id']}, Track: {result['trackName']}, Artist: {result['artistName']}")
+    
+    if query_results:
+        track_id = query_results[0]["id"]  # Obtén el primer resultado
+        track_details = service.get_lyrics_by_id(track_id)
+        print(track_details)
+
     @song_ns.doc(params={
         'category': 'Categoría de la canción (lentas o rapidas)',
+        'artist': 'Nombre de la banda o cantatne',
         'song_name': 'Nombre del archivo de la canción'
     })
-    @song_ns.marshal_with(song_model)
-    def get(self, category, song_name):
-        """
-        Obtiene la letra de una canción específica.
-        """
-        if category not in ['lentas', 'rapidas']:
-            song_ns.abort(400, "Categoría no válida. Use 'lentas' o 'rapidas'.")
-
-        song_data = load_song(category, song_name)
-        if not song_data:
-            song_ns.abort(404, "Canción no encontrada.")
-
-        return {"song_name": song_name, "category": category, "lyrics": song_data}
+    #@song_ns.marshal_with(song_model)
+#########
+#########
+###########

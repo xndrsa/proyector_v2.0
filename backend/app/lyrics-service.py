@@ -66,7 +66,7 @@ def main():
     service = LyricsService()
 
     print("=== Búsqueda por palabra clave ===")
-    query_results = service.search_lyrics(query="dios esta aqui")
+    query_results = service.search_lyrics(query="dios es real miel san marcos")
     for result in query_results:
         print(f"ID: {result['id']}, Track: {result['trackName']}, Artist: {result['artistName']}")
 
