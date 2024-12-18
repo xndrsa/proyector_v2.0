@@ -1,94 +1,97 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light" x-data>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
     <title>Biblia y Canciones</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        .container {
-            margin-bottom: 20px;
-        }
-        input, select, button {
-            margin: 5px;
-            padding: 8px;
-            font-size: 16px;
-        }
-        pre {
-            background-color: #f4f4f4;
-            padding: 10px;
-            border-radius: 5px;
-        }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@3.0.0/dist/full.css" type="text/css" />
+    
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
 </head>
-<body>
-    <h1>Consumo de API: Biblia y Canciones</h1>
+<body class="p-6 font-sans">
+    <h1 class="text-3xl font-bold mb-6">Consumo de API: Biblia y Canciones</h1>
 
-    <!-- TODO Sección para consultar un verso de la Biblia, esta opcion deberia de jalar versiones de la api, hay ya una funcion, la idea es que al momento de haber una nueva aparezca de una vez -->
-    <div class="container">
-        <h2>Consultar un verso de la Biblia</h2>
-        <select id="bible-version">
-            <option value="rv1960">Reina Valera 1960</option>
-            <option value="rv1995">Reina Valera 1995</option>
-            <option value="nvi">Nueva version internacional</option>
-            <option value="dhh">Dios habla hoy</option>
-            <option value="pdt">Palabra de Dios para todos</option>
-    <!-- TODO Sección para consultar los libros, hay un archivo .json en el folder de bibles con los libros -->
-        </select>
-        <input type="text" id="bible-book" placeholder="Libro (ej: genesis)" />
-        <input type="number" id="bible-chapter" placeholder="Capítulo" />
-        <input type="number" id="bible-verse" placeholder="Verso" />
-        <button onclick="fetchBibleVerse()">Consultar</button>
-        <pre id="bible-result"></pre>
-    </div>
+    <div x-data="{
+        bibleVersion: 'rv1960',
+        bibleBook: '',
+        bibleChapter: '',
+        bibleVerse: '',
+        bibleRange: '',
+        bibleResult: '',
+        songCategory: 'lentas',
+        songName: '',
+        songResult: '',
+        API_BASE_URL: 'http://127.0.0.1:5000',
 
-    <!-- Sección para consultar la letra de una canción -->
-    <div class="container">
-        <h2>Consultar una canción</h2>
-        <select id="song-category">
-            <option value="lentas">Lentas</option>
-            <option value="rapidas">Rapidas</option>
-        </select>
-        <input type="text" id="song-name" placeholder="Nombre de la canción" />
-        <button onclick="fetchSongLyrics()">Consultar</button>
-        <pre id="song-result"></pre>
-    </div>
-                            <!-- esta direccion puede ser diferente, ARREGLE LA const url, ya que tiene otro orden, el problema es que no lo muestra el Front TODO -->
-    <script>
-        const API_BASE_URL = "http://127.0.0.1:5000/";
-
-        async function fetchBibleVerse() {
-            const version = document.getElementById('bible-version').value;
-            const book = document.getElementById('bible-book').value;
-            const chapter = document.getElementById('bible-chapter').value;
-            const verse = document.getElementById('bible-verse').value;
-
-            const url = `${API_BASE_URL}/bible/read/${version}/${book}/${chapter}/${verse}`;
+        // universal fetch function JSON response
+        async fetchData(url) {
             try {
                 const response = await fetch(url);
                 const data = await response.json();
-                document.getElementById('bible-result').textContent = JSON.stringify(data, null, 2);
+                return JSON.stringify(data, null, 2);
             } catch (error) {
-                document.getElementById('bible-result').textContent = `Error: ${error.message}`;
+                return `Error: ${error.message}`;
             }
-        }
+        },
 
-        async function fetchSongLyrics() {
-            const category = document.getElementById('song-category').value;
-            const songName = document.getElementById('song-name').value;
-
-            const url = `${API_BASE_URL}/song/${category}/${songName}`;
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-                document.getElementById('song-result').textContent = JSON.stringify(data, null, 2);
-            } catch (error) {
-                document.getElementById('song-result').textContent = `Error: ${error.message}`;
+        async fetchBibleVerse() {
+            if (!this.bibleVersion || !this.bibleBook || !this.bibleChapter || !this.bibleVerse) {
+                this.bibleResult = 'Por favor completa todos los campos.';
+                return;
             }
+
+            let endpoint = `${this.API_BASE_URL}/bible/read/${this.bibleVersion}/${this.bibleBook}/${this.bibleChapter}/${this.bibleVerse}`;
+            if (this.bibleRange) {
+                endpoint += `-${this.bibleRange}`;
+            }
+
+            this.bibleResult = await this.fetchData(endpoint);
+        },
+
+        async fetchSongLyrics() {
+            if (!this.songCategory || !this.songName) {
+                this.songResult = 'Por favor completa todos los campos.';
+                return;
+            }
+
+            const endpoint = `${this.API_BASE_URL}/song/${this.songCategory}/${this.songName}`;
+            this.songResult = await this.fetchData(endpoint);
         }
-    </script>
+    }">
+        <div class="mb-8 space-y-4">
+            <h2 class="text-2xl font-semibold">Consultar un verso de la Biblia</h2>
+            <div class="flex flex-wrap gap-2">
+                <select x-model="bibleVersion" class="select select-bordered">
+                    <option value="rv1960">Reina Valera 1960</option>
+                    <option value="rv1995">Reina Valera 1995</option>
+                    <option value="nvi">Nueva Versión Internacional</option>
+                    <option value="dhh">Dios Habla Hoy</option>
+                    <option value="pdt">Palabra de Dios para Todos</option>
+                </select>
+                <input type="text" x-model="bibleBook" placeholder="Libro (ej: genesis)" class="input input-bordered" />
+                <input type="number" x-model="bibleChapter" placeholder="Capítulo" class="input input-bordered w-24" />
+                <input type="number" x-model="bibleVerse" placeholder="Verso" class="input input-bordered w-24" />
+                <input type="number" x-model="bibleRange" placeholder="Rango (opcional)" class="input input-bordered w-32" />
+            </div>
+            <button class="btn btn-primary" x-on:click="fetchBibleVerse">Consultar</button>
+            <pre class="bg-base-200 p-4 rounded whitespace-pre-wrap break-words" x-text="bibleResult"></pre>
+        </div>
+
+        <div class="mb-8 space-y-4">
+            <h2 class="text-2xl font-semibold">Consultar una canción</h2>
+            <div class="flex flex-wrap gap-2">
+                <select x-model="songCategory" class="select select-bordered">
+                    <option value="lentas">Lentas</option>
+                    <option value="rapidas">Rápidas</option>
+                </select>
+                <input type="text" x-model="songName" placeholder="Nombre de la canción" class="input input-bordered" />
+            </div>
+            <button class="btn btn-primary" x-on:click="fetchSongLyrics">Consultar</button>
+            <pre class="bg-base-200 p-4 rounded whitespace-pre-wrap break-words" x-text="songResult"></pre>
+        </div>
+    </div>
 </body>
 </html>

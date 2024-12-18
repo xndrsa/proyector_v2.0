@@ -18,17 +18,37 @@ def fetch_bible_versions():
     print(f"Error al obtener versiones de biblias: {response.status_code}")
     return None
 
-def fetch_verses(version, book, chapter,verse,range=None):
-    if range is None:
-        url = f"{VERSIONS_URL}/read/{version}/{book}/{chapter}/{verse}"
-    else:
-        url = f"{VERSIONS_URL}/read/{version}/{book}/{chapter}/{verse}-{range}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()
-    print(f"Error al obtener versículos del capítulo {chapter} del libro {book} en la versión {version}: {response.status_code}")
-    return response.status_code
+def fetch_verses(version, book, chapter, verse, range=None):
+    """
+    Obtiene uno o más versículos de la Biblia desde la API.
+    """
+    try:
+        if range is None:
+            url = f"{VERSIONS_URL}/read/{version}/{book}/{chapter}/{verse}"
+        else:
+            url = f"{VERSIONS_URL}/read/{version}/{book}/{chapter}/{verse}-{range}"
 
+        response = requests.get(url)
+
+        # Manejo de errores HTTP
+        if response.status_code == 200:
+            data = response.json()
+
+            # Validar que el formato sea el esperado
+            if isinstance(data, list):
+                return data  # Rango de versículos
+            elif isinstance(data, dict):
+                return [data]  # Versículo único como lista
+            else:
+                print("Formato de respuesta inesperado")
+                return None
+        else:
+            print(f"Error al obtener versículos: {response.status_code}")
+            return None
+
+    except Exception as e:
+        print(f"Error en fetch_verses: {str(e)}")
+        return None
 
 
 
