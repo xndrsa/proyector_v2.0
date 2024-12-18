@@ -1,7 +1,6 @@
 from flask_restx import Namespace, Resource, fields, reqparse
 from app.utils import fetch_bible_versions, fetch_verses, LyricsService
 
-
 # Namespaces
 bible_ns = Namespace('bible', description='Operaciones para la Biblia')
 song_ns = Namespace('song', description='Operaciones para las canciones')
@@ -10,7 +9,6 @@ song_ns = Namespace('song', description='Operaciones para las canciones')
 bible_version_model = bible_ns.model('BibleVersion', {
     'id': fields.String(required=True, description='Identificador de la versión'),
     'name': fields.String(required=True, description='Nombre de la versión'),
-    
 })
 
 # Modelo de datos versículo de la Biblia
@@ -23,10 +21,11 @@ bible_verse_model = bible_ns.model('BibleVerse', {
     'text': fields.String(required=True, description='Texto del versículo'),
 })
 
+# Modelo para canción
 song_model = song_ns.model('Song', {
     'song_name': fields.String(required=True, description='Nombre de la canción'),
     'category': fields.String(required=True, description='Categoría de la canción'),
-    'lyrics': fields.List(fields.String, description='Letras de la canción'),
+    'lyrics': fields.String(description='Letras de la canción'),
 })
 
 # Definir rutas usando Resource
@@ -62,26 +61,31 @@ class BibleVerse(Resource):
         except ValueError:
             bible_ns.abort(400, "El formato del capítulo, verso o rango es incorrecto.")
 
-
-################### Need to adjust, I need to get the song id to get the data
 @song_ns.route('/<string:category>/<string:artist>/<string:song_name>')
-def get_songs():
-    service = LyricsService()
-    query_results = service.search_lyrics(query="dios es real miel san marcos")
-    for result in query_results:
-        print(f"ID: {result['id']}, Track: {result['trackName']}, Artist: {result['artistName']}")
-    
-    if query_results:
-        track_id = query_results[0]["id"]  # Obtén el primer resultado
-        track_details = service.get_lyrics_by_id(track_id)
-        print(track_details)
-
+class SongLyrics(Resource):
     @song_ns.doc(params={
-        'category': 'Categoría de la canción (lentas o rapidas)',
-        'artist': 'Nombre de la banda o cantatne',
-        'song_name': 'Nombre del archivo de la canción'
+        'category': 'Categoría de la canción (lentas o rápidas)',
+        'artist': 'Nombre del artista',
+        'song_name': 'Nombre de la canción'
     })
-    #@song_ns.marshal_with(song_model)
-#########
-#########
-###########
+    def get(self, category, artist, song_name):
+        """
+        Obtiene la letra de una canción específica.
+        """
+        service = LyricsService()
+        query = f"{song_name} {artist}"
+        query_results = service.search_lyrics(query=query)
+
+        if not query_results:
+            song_ns.abort(404, "Canción no encontrada.")
+
+        # Obtén el primer resultado
+        track_id = query_results[0]["id"]
+        track_details = service.get_lyrics_by_id(track_id)
+
+        return {
+            "song_name": track_details.get("trackName"),
+            "category": category,
+            "artist": track_details.get("artistName"),
+            "lyrics": track_details.get("plainLyrics"),
+        }
