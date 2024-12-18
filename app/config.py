@@ -1,28 +1,20 @@
+import os
 
-EXTERNAL_BIBLE_API_BASE = "https://bible-api.deno.dev/api"
+class Config:
+    """Configuración base."""
+    DEBUG = False
+    TESTING = False
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'laweafome')
+    RESTX_MASK_SWAGGER = False
 
-AVAILABLE_VERSIONS = ["rv1960", "rv1995", "nvi", "dhh", "pdt", "kjv"]
+class DevelopmentConfig(Config):
+    """Configuración para desarrollo."""
+    DEBUG = True
 
-APP_VERSION = "1.0.0"
+class ProductionConfig(Config):
+    """Configuración para producción."""
+    DEBUG = False
 
-APP_NAME = "ProyektorCF"
-
-SWAGGER_TEMPLATE = {
-    "swagger": "2.0",
-    "info": {
-        "title": APP_NAME,
-        "description": "API para acceder a versos de la Biblia y letras de canciones.",
-        "version": APP_VERSION
-    },
-    "basePath": "/",
-    "schemes": [
-        "http"
-    ],
-    "securityDefinitions": {},
-    "consumes": [
-        "application/json"
-    ],
-    "produces": [
-        "application/json"
-    ]
-}
+class TestingConfig(Config):
+    """Configuración para pruebas."""
+    TESTING = True
