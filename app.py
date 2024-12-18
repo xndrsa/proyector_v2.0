@@ -1,8 +1,10 @@
 from flask import Flask
+from flask_cors import CORS
 from app.routes import bible_routes, song_routes
 
 def create_app():
     app = Flask(__name__)
+    CORS(app, resources={r"/*": {"origins": "*"}})
     app.register_blueprint(bible_routes, url_prefix='/bible')
     app.register_blueprint(song_routes, url_prefix='/song')
     return app
