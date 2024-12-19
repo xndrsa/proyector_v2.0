@@ -55,7 +55,7 @@ interface NavLink {
 })
 export class SidebarComponent {
   @Input() links: NavLink[] = [
-    { label: 'Biblia', route: '/bible', icon: '📖' },
+    { label: 'Leer Biblia', route: '/bible', icon: '📖' },
     { label: 'Canciones', route: '/songs', icon: '🎵' },
   ];
 
