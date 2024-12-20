@@ -28,15 +28,13 @@ song_model = song_ns.model('Song', {
     'lyrics': fields.String(description='Letras de la canción'),
 })
 
-# Definir rutas usando Resource
 @bible_ns.route('/versions')
 class BibleVersions(Resource):
-    @bible_ns.marshal_list_with(bible_version_model)
     def get(self):
-        """Obtiene las versiones disponibles de la Biblia"""
-        versions = fetch_bible_versions()
-        if versions:
-            return versions
+        """Obtiene las versiones disponibles de la Biblia con sus endpoints"""
+        result = fetch_bible_versions()
+        if result:
+            return result
         bible_ns.abort(500, "No se pudieron obtener las versiones")
 
 @bible_ns.route('/read/<string:version>/<string:book>/<int:chapter>/<int:verse>')

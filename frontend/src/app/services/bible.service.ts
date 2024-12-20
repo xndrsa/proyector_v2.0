@@ -1,10 +1,15 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { Version, getVersionName } from '../constants';
 
 interface BibleVersion {
-  id: string;
+  id: Version;
   name: string;
+}
+
+interface BibleVersionsResponse {
+  versions: BibleVersion[];
 }
 
 interface VerseResponse {
@@ -27,16 +32,16 @@ export class BibleService {
    * Obtiene la lista de versiones disponibles de la Biblia.
    * GET /bible/versions
    */
-  getVersions(): Observable<BibleVersion[]> {
-    return this.http.get<BibleVersion[]>(`${this.baseUrl}/bible/versions`);
+  getVersions(): Observable<BibleVersionsResponse> {
+    return this.http.get<BibleVersionsResponse>(`${this.baseUrl}/bible/versions`);
   }
 
   /**
    * Obtiene un versículo específico de la Biblia.
    * GET /bible/read/{version}/{book}/{chapter}/{verse}
    */
-  getVerse(version: string, book: string, chapter: number, verse: number): Observable<VerseResponse> {
-    const url = `${this.baseUrl}/bible/read/${version}/${book}/${chapter}/${verse}`;
+  getVerse(version: Version, bookApiName: string, chapter: number, verse: number): Observable<VerseResponse> {
+    const url = `${this.baseUrl}/bible/read/${version}/${bookApiName}/${chapter}/${verse}`;
     return this.http.get<VerseResponse>(url);
   }
 
@@ -45,8 +50,8 @@ export class BibleService {
    * GET /bible/read/{version}/{book}/{chapter}/{verse}-{range}
    * ejemplo de range: "5" (solo un versículo), o "5-10" (varios versículos)
    */
-  getVerseRange(version: string, book: string, chapter: number, verse: number, range: string): Observable<VerseResponse> {
-    const url = `${this.baseUrl}/bible/read/${version}/${book}/${chapter}/${verse}-${range}`;
+  getVerseRange(version: Version, bookApiName: string, chapter: number, verse: number, range: string): Observable<VerseResponse> {
+    const url = `${this.baseUrl}/bible/read/${version}/${bookApiName}/${chapter}/${verse}-${range}`;
     return this.http.get<VerseResponse>(url);
   }
 }

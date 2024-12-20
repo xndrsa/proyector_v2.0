@@ -13,7 +13,27 @@ def fetch_bible_versions():
     url = f"{VERSIONS_URL}/versions"
     response = requests.get(url)
     if response.status_code == 200:
-        return response.json()
+        raw_versions = response.json()
+        if raw_versions:
+            # Estructura con versiones y endpoints
+            versions = []
+            endpoints = []
+
+            for idx, version in enumerate(raw_versions):
+                version_code = version["name"].replace(" ", "").lower()
+                uri = f"/api/read/{version_code}"
+                versions.append({
+                    "id": idx + 1,  # Usa un índice incremental como id
+                    "name": version["name"],
+                    "version": version_code,
+                    "uri": uri
+                })
+                endpoints.append(f"{uri}/genesis/1")
+
+            return {
+                "versions": versions,
+                "endpoints": endpoints
+            }
     print(f"Error al obtener versiones de biblias: {response.status_code}")
     return None
 
