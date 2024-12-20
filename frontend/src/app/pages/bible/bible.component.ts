@@ -207,6 +207,26 @@ export class BibleComponent implements OnInit {
   verses: { number: number; verse: string }[] = [];
   searchQuery = "";
 
+  private mapToVersionEnum(version: string): Version | null {
+    switch (version) {
+      case "reinavalera1960":
+        return Version.Rv60;
+      case "reinavalera1995":
+        return Version.Rv95;
+      case "nuevaversioninternacional":
+        return Version.Nvi;
+      case "dioshablahoy":
+        return Version.Dhh;
+      case "palabradediosparatodos":
+        return Version.Pdt;
+      case "kingjamesversion":
+        return Version.KJV;
+      default:
+        console.warn(`Versión desconocida: ${version}`);
+        return null;
+    }
+  }
+
   constructor(private bibleService: BibleService) {}
 
   ngOnInit(): void {
@@ -217,11 +237,14 @@ export class BibleComponent implements OnInit {
     this.isLoading = true;
     this.bibleService.getVersions().subscribe({
       next: (data) => {
-        this.versions = data.versions.map((v) => ({
-          id: v.id,
-          name: getVersionName(v.id),
-        }));
+        this.versions = data.versions
+          .map((v) => ({
+            id: this.mapToVersionEnum(v.version),
+            name: v.name,
+          }))
+          .filter((v) => v.id !== null) as { id: Version; name: string }[];
         this.isLoading = false;
+
         if (this.versions.length > 0) {
           this.onVersionSelect(this.versions[0].id);
         }
@@ -233,8 +256,8 @@ export class BibleComponent implements OnInit {
     });
   }
 
-  onVersionSelect(version: Version) {
-    this.selectedVersion = version;
+  onVersionSelect(versionId: Version) {
+    this.selectedVersion = versionId;
     this.selectedBook = null;
     this.selectedChapter = null;
     this.chapters = [];
@@ -252,33 +275,48 @@ export class BibleComponent implements OnInit {
   }
 
   loadVerses() {
-    if (!this.selectedVersion || !this.selectedBook || !this.selectedChapter) return;
+    if (!this.selectedVersion || !this.selectedBook || !this.selectedChapter)
+      return;
   
     this.isLoadingVerses = true;
+  
     this.bibleService
       .getVerseRange(
         this.selectedVersion,
-        this.selectedBook.apiName,
+        this.selectedBook.apiName, // Se usa apiName aquí
         this.selectedChapter,
         1,
         "150"
       )
       .subscribe({
         next: (data) => {
-          this.verses = JSON.parse(data.text).map((v: any) => ({
-            number: v.number,
-            verse: v.verse,
-          }));
-          this.isLoadingVerses = false;
+          try {
+            console.log("Respuesta de la API (original):", data.text);
+            const sanitizedText = data.text.replace(/'/g, '"');
+            console.log("Respuesta de la API (sanitizada):", sanitizedText);
+  
+            this.verses = JSON.parse(sanitizedText).map((v: any) => ({
+              number: v.number,
+              verse: v.verse,
+            }));
+  
+            this.isLoadingVerses = false;
+          } catch (error) {
+            console.error("Error al parsear el texto de versículos:", error);
+            console.error("Texto recibido:", data.text);
+  
+            this.verses = [];
+            this.isLoadingVerses = false;
+          }
         },
-        error: () => {
+        error: (err) => {
+          console.error("Error al cargar versículos desde la API:", err);
+          this.verses = [];
           this.isLoadingVerses = false;
-          console.error("Error al cargar versículos");
         },
       });
   }
   
-
   filteredBooks(testament: "AT" | "NT"): Book[] {
     return books
       .filter(

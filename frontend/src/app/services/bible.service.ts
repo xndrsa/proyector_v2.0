@@ -1,11 +1,13 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { Version, getVersionName } from '../constants';
+import { Injectable } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { Observable } from "rxjs";
+import { Version, getVersionName } from "../constants";
 
 interface BibleVersion {
-  id: Version;
+  id: number;
   name: string;
+  version: string;
+  uri: string;
 }
 
 interface BibleVersionsResponse {
@@ -22,10 +24,10 @@ interface VerseResponse {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: "root",
 })
 export class BibleService {
-  private baseUrl = 'http://localhost:5000';
+  private baseUrl = "http://localhost:5000";
   constructor(private http: HttpClient) {}
 
   /**
@@ -33,14 +35,21 @@ export class BibleService {
    * GET /bible/versions
    */
   getVersions(): Observable<BibleVersionsResponse> {
-    return this.http.get<BibleVersionsResponse>(`${this.baseUrl}/bible/versions`);
+    return this.http.get<BibleVersionsResponse>(
+      `${this.baseUrl}/bible/versions`
+    );
   }
 
   /**
    * Obtiene un versículo específico de la Biblia.
    * GET /bible/read/{version}/{book}/{chapter}/{verse}
    */
-  getVerse(version: Version, bookApiName: string, chapter: number, verse: number): Observable<VerseResponse> {
+  getVerse(
+    version: string,
+    bookApiName: string,
+    chapter: number,
+    verse: number
+  ): Observable<VerseResponse> {
     const url = `${this.baseUrl}/bible/read/${version}/${bookApiName}/${chapter}/${verse}`;
     return this.http.get<VerseResponse>(url);
   }
@@ -50,7 +59,13 @@ export class BibleService {
    * GET /bible/read/{version}/{book}/{chapter}/{verse}-{range}
    * ejemplo de range: "5" (solo un versículo), o "5-10" (varios versículos)
    */
-  getVerseRange(version: Version, bookApiName: string, chapter: number, verse: number, range: string): Observable<VerseResponse> {
+  getVerseRange(
+    version: string,
+    bookApiName: string,
+    chapter: number,
+    verse: number,
+    range: string
+  ): Observable<VerseResponse> {
     const url = `${this.baseUrl}/bible/read/${version}/${bookApiName}/${chapter}/${verse}-${range}`;
     return this.http.get<VerseResponse>(url);
   }

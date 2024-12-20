@@ -11,32 +11,33 @@ export interface Book {
 }
 
 export enum Version {
-  Rv60 = "rv1960",
-  Rv95 = "rv1995",
-  Nvi = "nvi",
-  Dhh = "dhh",
-  Pdt = "pdt",
-  KJV = "kjv",
-}
-
-export const getVersionName = (v: Version): string => {
-  switch (v) {
-    case Version.Dhh:
-      return "Dios habla hoy";
-    case Version.Nvi:
-      return "Nueva versión internacional";
-    case Version.Rv95:
-      return "Reina Valera 1995";
-    case Version.Rv60:
-      return "Reina Valera 1960";
-    case Version.Pdt:
-      return "Palabra de Dios para todos";
-    case Version.KJV:
-      return "King James Version";
-    default:
-      return v;
+    Rv60 = "rv1960",
+    Rv95 = "rv1995",
+    Nvi = "nvi",
+    Dhh = "dhh",
+    Pdt = "pdt",
+    KJV = "kjv",
   }
-};
+  
+  export const getVersionName = (version: Version): string => {
+    switch (version) {
+      case Version.Rv60:
+        return "Reina Valera 1960";
+      case Version.Rv95:
+        return "Reina Valera 1995";
+      case Version.Nvi:
+        return "Nueva Versión Internacional";
+      case Version.Dhh:
+        return "Dios Habla Hoy";
+      case Version.Pdt:
+        return "Palabra de Dios para Todos";
+      case Version.KJV:
+        return "King James Version";
+      default:
+        return "Versión desconocida";
+    }
+  };
+  
 
 /*
  * Array of Bible books
