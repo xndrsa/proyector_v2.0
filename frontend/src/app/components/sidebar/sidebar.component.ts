@@ -1,6 +1,6 @@
-import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
-import { RouterModule } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { Component, Input, ChangeDetectionStrategy } from "@angular/core";
+import { RouterModule } from "@angular/router";
+import { CommonModule } from "@angular/common";
 
 interface NavLink {
   label: string;
@@ -9,7 +9,7 @@ interface NavLink {
 }
 
 @Component({
-  selector: 'app-sidebar',
+  selector: "app-sidebar",
   standalone: true,
   imports: [CommonModule, RouterModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,8 +37,7 @@ interface NavLink {
             class="flex flex-col items-center text-gray-400 hover:text-blue-400 transition-colors duration-200"
             [attr.aria-label]="link.label"
           >
-            <!-- Icono -->
-            <span class="text-2xl mb-1">{{ link.icon }}</span>
+            <span class="material-icons text-3xl mb-1">{{ link.icon }}</span>
             <!-- Etiqueta -->
             <span class="text-xs">{{ link.label }}</span>
           </a>
@@ -47,7 +46,7 @@ interface NavLink {
 
       <!-- Footer (opcional) -->
       <div class="mt-auto">
-        <span class="text-xs text-gray-500">© 2024</span>
+        <span class="text-xs text-gray-500">{{ footerText }}</span>
       </div>
     </nav>
   `,
@@ -55,9 +54,14 @@ interface NavLink {
 })
 export class SidebarComponent {
   @Input() links: NavLink[] = [
-    { label: 'Biblia', route: '/bible', icon: '📖' },
-    { label: 'Canciones', route: '/songs', icon: '🎵' },
+    { label: "Biblia", route: "/bible", icon: "menu_book" },
+    { label: "Canciones", route: "/songs", icon: "music_note" },
+    { label: "Anuncios", route: "/announcements", icon: "announcement" },
+    { label: "Acerca de", route: "/about", icon: "info" },
+
   ];
+
+  @Input() footerText: string = "© 2024";
 
   trackByRoute(index: number, link: NavLink): string {
     return link.route;

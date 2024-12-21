@@ -292,28 +292,34 @@ export class BibleComponent implements OnInit {
         next: (data) => {
           try {
             console.log("Respuesta de la API (original):", data.text);
-            const sanitizedText = data.text.replace(/'/g, '"');
-            console.log("Respuesta de la API (sanitizada):", sanitizedText);
-  
-            this.verses = JSON.parse(sanitizedText).map((v: any) => ({
-              number: v.number,
-              verse: v.verse,
-            }));
-  
+            
+            if (Array.isArray(data.text)) {
+              this.verses = data.text.map((v: any) => ({
+                number: v.number,
+                verse: v.verse,
+              }));
+            } 
+            else if (typeof data.text === 'string') {
+              const sanitizedText = data.text.replace(/'/g, '"');
+              this.verses = JSON.parse(sanitizedText).map((v: any) => ({
+                number: v.number,
+                verse: v.verse,
+              }));
+            } 
+            else {
+              console.warn("Formato inesperado en data.text:", data.text);
+              this.verses = [];
+            }
+        
             this.isLoadingVerses = false;
           } catch (error) {
-            console.error("Error al parsear el texto de versículos:", error);
+            console.error("Error al procesar versículos:", error);
             console.error("Texto recibido:", data.text);
-  
             this.verses = [];
             this.isLoadingVerses = false;
           }
         },
-        error: (err) => {
-          console.error("Error al cargar versículos desde la API:", err);
-          this.verses = [];
-          this.isLoadingVerses = false;
-        },
+        
       });
   }
   

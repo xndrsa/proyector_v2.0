@@ -5,6 +5,13 @@ from app.utils import fetch_bible_versions, fetch_verses, LyricsService
 bible_ns = Namespace('bible', description='Operaciones para la Biblia')
 song_ns = Namespace('song', description='Operaciones para las canciones')
 
+single_verse_model = bible_ns.model('SingleVerse', {
+    'id': fields.Integer(description='ID del versículo'),
+    'number': fields.Integer(description='Número del versículo'),
+    'verse': fields.String(description='Texto del versículo'),
+    'study': fields.String(description='Comentario o título'),
+})
+
 # Modelo de datos versión de la Biblia
 bible_version_model = bible_ns.model('BibleVersion', {
     'id': fields.String(required=True, description='Identificador de la versión'),
@@ -18,7 +25,7 @@ bible_verse_model = bible_ns.model('BibleVerse', {
     'chapter': fields.Integer(required=True, description='Capítulo'),
     'verse': fields.Integer(required=True, description='Verso'),
     'range': fields.String(required=False, description='Rango de versículos'),
-    'text': fields.String(required=True, description='Texto del versículo'),
+    'text': fields.List(fields.Nested(single_verse_model)),  # <-- en lugar de fields.String
 })
 
 # Modelo para canción
