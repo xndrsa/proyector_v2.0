@@ -1,11 +1,11 @@
-import { Component, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { PresentationService } from '../../services/presentation.service';
-
+import { Component, OnInit } from "@angular/core";
+import { FormsModule } from "@angular/forms";
+import { PresentationService } from "../../services/presentation.service";
+import { ColorCompactModule } from "ngx-color/compact";
 @Component({
-  selector: 'app-window-panel',
+  selector: "app-window-panel",
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, ColorCompactModule],
   template: `
     <div
       class="fixed top-0 right-0 h-screen z-[9999] transition-transform"
@@ -19,9 +19,11 @@ import { PresentationService } from '../../services/presentation.service';
         (click)="togglePanel()"
         aria-label="Toggle Configuration Panel"
       >
-        <span class="icon">{{ isOpen || isHovered ? '⬅' : '➡' }}</span>
+        <span class="icon">{{ isOpen || isHovered ? "⬅" : "➡" }}</span>
       </button>
-      <div class="w-72 h-full bg-gray-800 text-gray-100 shadow-lg overflow-y-auto">
+      <div
+        class="w-72 h-full bg-gray-800 text-gray-100 shadow-lg overflow-y-auto"
+      >
         <h2 class="text-center text-xl font-bold py-4 border-b border-gray-700">
           Configuración de Pantalla
         </h2>
@@ -38,30 +40,26 @@ import { PresentationService } from '../../services/presentation.service';
               class="w-full p-2 border border-gray-700 rounded-md bg-gray-900 text-gray-100"
             />
           </div>
+
           <div class="form-group">
             <label for="backgroundColor" class="block text-sm font-medium">
               Color de Fondo
             </label>
-            <input
-              type="color"
-              id="backgroundColor"
-              [(ngModel)]="config.backgroundColor"
-              (change)="updateConfig()"
-              class="w-full h-10 p-0 border border-gray-700 rounded-md bg-gray-900"
-            />
+            <color-compact
+              [color]="config.backgroundColor"
+              (onChangeComplete)="updateBackgroundColor($event)"
+            ></color-compact>
           </div>
           <div class="form-group">
             <label for="textColor" class="block text-sm font-medium">
               Color del Texto
             </label>
-            <input
-              type="color"
-              id="textColor"
-              [(ngModel)]="config.textColor"
-              (change)="updateConfig()"
-              class="w-full h-10 p-0 border border-gray-700 rounded-md bg-gray-900"
-            />
+            <color-compact
+              [color]="config.textColor"
+              (onChangeComplete)="updateTextColor($event)"
+            ></color-compact>
           </div>
+
           <div class="form-group">
             <label for="transition" class="block text-sm font-medium">
               Duración de Transición (ms)
@@ -114,120 +112,118 @@ import { PresentationService } from '../../services/presentation.service';
       </div>
     </div>
   `,
-  styles: [`
-    .sidebar {
-      position: fixed;
-      top: 0;
-      right: -300px;
-      height: 100%;
-      width: 300px;
-      background-color: #2b2b2b;
-      color: #f1f1f1;
-      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
-      overflow-y: auto;
-      transition: right 0.3s ease;
-      z-index: 9999;
-    }
-    .sidebar.translate-x-0 {
-      right: 0;
-    }
-    .tab {
-      position: absolute;
-      top: 50%;
-      left: -47.5px;
-      transform: translateY(-50%);
-      width: 48px;
-      height: 80px;
-      background-color: #1f2937;
-      color: #ffffff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-      border: none;
-      border-radius: 5px 0 0 5px;
-      box-shadow: -2px 0 6px rgba(0, 0, 0, 0.2);
-      transition: background-color 0.3s ease, transform 0.3s ease;
-      z-index: 10000;
-    }
-    .tab:hover {
-      background-color: #374151;
-    }
-    .tab:active {
-      background-color: #4b5563;
-      transform: translateY(-50%) scale(0.95);
-    }
-    .icon {
-      font-size: 1.5rem;
-      transition: transform 0.3s ease;
-    }
-    .tab:hover .icon {
-      transform: rotate(5deg);
-    }
-    .icon {
-      font-size: 24px;
-      transition: transform 0.3s ease;
-    }
-    .sidebar .content {
-      padding: 20px;
-      font-size: 14px;
-    }
-    .form-group {
-      margin-bottom: 20px;
-    }
-    label {
-      display: block;
-      font-weight: bold;
-      margin-bottom: 8px;
-      font-size: 14px;
-    }
-    input[type="number"],
-    input[type="text"] {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #666;
-      border-radius: 4px;
-      background-color: #f1f1f1;
-      color: #333;
-      font-size: 14px;
-      box-sizing: border-box;
-    }
-    input[type="color"] {
-      width: 100%;
-      border: 1px solid #666;
-      padding: 2px;
-      border-radius: 4px;
-      background-color: #f1f1f1;
-      color: #333;
-      font-size: 14px;
-      box-sizing: border-box;
-    }
-    input[type="checkbox"] {
-      width: auto;
-      transform: scale(1.2);
-    }
-    @media (max-width: 768px) {
+  styles: [
+    `
+      .sidebar {
+        position: fixed;
+        top: 0;
+        right: -300px;
+        height: 100%;
+        width: 300px;
+        background-color: #2b2b2b;
+        color: #f1f1f1;
+        box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
+        overflow-y: auto;
+        transition: right 0.3s ease;
+        z-index: 9999;
+      }
+      .sidebar.translate-x-0 {
+        right: 0;
+      }
       .tab {
-        width: 50px;
-        height: 100px;
-        left: -60px;
+        position: absolute;
+        top: 50%;
+        left: -35px;
+        transform: translateY(-50%);
+        width: 35px;
+        height: 70px;
+        background-color: #1f2937;
+        color: #ffffff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        border: none;
+        border-radius: 5px 0 0 5px;
+        box-shadow: -2px 0 6px rgba(0, 0, 0, 0.2);
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        z-index: 10000;
+      }
+      .tab:hover {
+        background-color: #374151;
+      }
+      .tab:active {
+        background-color: #4b5563;
+        transform: translateY(-50%) scale(1.05);
+      }
+      .tab:hover .icon {
+        transform: rotate(5deg);
       }
       .icon {
-        font-size: 28px;
+        font-size: 20px;
+        transition: transform 0.3s ease;
       }
       .sidebar .content {
-        font-size: 12px;
+        padding: 20px;
+        font-size: 14px;
+      }
+      .form-group {
+        margin-bottom: 20px;
       }
       label {
-        font-size: 12px;
+        display: block;
+        font-weight: bold;
+        margin-bottom: 8px;
+        font-size: 14px;
       }
       input[type="number"],
-      input[type="text"],
-      input[type="color"] {
-        font-size: 12px;
+      input[type="text"] {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #666;
+        border-radius: 4px;
+        background-color: #f1f1f1;
+        color: #333;
+        font-size: 14px;
+        box-sizing: border-box;
       }
-    }
-  `],
+      input[type="color"] {
+        width: 100%;
+        border: 1px solid #666;
+        padding: 2px;
+        border-radius: 4px;
+        background-color: #f1f1f1;
+        color: #333;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+      input[type="checkbox"] {
+        width: auto;
+        transform: scale(1.2);
+      }
+      @media (max-width: 768px) {
+        .tab {
+          width: 50px;
+          height: 100px;
+          left: -60px;
+        }
+        .icon {
+          font-size: 28px;
+        }
+        .sidebar .content {
+          font-size: 12px;
+        }
+        label {
+          font-size: 12px;
+        }
+        input[type="number"],
+        input[type="text"],
+        input[type="color"] {
+          font-size: 12px;
+        }
+      }
+    `,
+  ],
 })
 export class WindowPanelComponent implements OnInit {
   config: any = {};
@@ -240,6 +236,16 @@ export class WindowPanelComponent implements OnInit {
     this.presentationService.config$.subscribe((config) => {
       this.config = { ...config };
     });
+  }
+
+  updateBackgroundColor(event: any): void {
+    this.config.backgroundColor = event.color.hex; // Actualiza el color en formato HEX
+    this.updateConfig();
+  }
+
+  updateTextColor(event: any): void {
+    this.config.textColor = event.color.hex; // Actualiza el color en formato HEX
+    this.updateConfig();
   }
 
   updateConfig(): void {
