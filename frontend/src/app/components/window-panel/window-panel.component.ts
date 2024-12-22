@@ -2,10 +2,12 @@ import { Component, OnInit } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { PresentationService } from "../../services/presentation.service";
 import { ColorCompactModule } from "ngx-color/compact";
+import { CommonModule } from "@angular/common";
+
 @Component({
   selector: "app-window-panel",
   standalone: true,
-  imports: [FormsModule, ColorCompactModule],
+  imports: [FormsModule, ColorCompactModule, CommonModule],
   template: `
     <div
       class="fixed top-0 right-0 h-screen z-[9999] transition-transform"
@@ -14,6 +16,7 @@ import { ColorCompactModule } from "ngx-color/compact";
       (mouseenter)="onMouseEnter()"
       (mouseleave)="onMouseLeave()"
     >
+      <!-- Botón para mostrar/ocultar el panel -->
       <button
         class="tab"
         (click)="togglePanel()"
@@ -21,38 +24,74 @@ import { ColorCompactModule } from "ngx-color/compact";
       >
         <span class="icon">{{ isOpen || isHovered ? "⬅" : "➡" }}</span>
       </button>
+
+      <!-- Panel principal -->
       <div
-        class="w-72 h-full bg-gray-800 text-gray-100 shadow-lg overflow-y-auto"
+        class="w-72 h-full bg-gray-800 text-gray-100 shadow-lg flex flex-col overflow-y-auto"
       >
+        <!-- Encabezado del panel -->
         <h2 class="text-center text-xl font-bold py-4 border-b border-gray-700">
           Configuración de Pantalla
         </h2>
+
+        <!-- Contenido del panel -->
         <div class="p-4 space-y-4">
-          <div class="form-group">
-            <label for="fontSize" class="block text-sm font-medium">
-              Tamaño de Fuente
+          <!-- Tamaño de Fuente -->
+          <div class="form-control">
+            <label for="fontSize" class="label">
+              <span class="label-text text-gray-200">Tamaño de Fuente</span>
             </label>
-            <input
-              type="number"
-              id="fontSize"
-              [(ngModel)]="config.fontSize"
-              (change)="updateConfig()"
-              class="w-full p-2 border border-gray-700 rounded-md bg-gray-900 text-gray-100"
-            />
+            <div class="relative">
+              <input
+                type="number"
+                id="fontSize"
+                [(ngModel)]="config.fontSize"
+                (change)="updateConfig()"
+                class="input input-bordered w-full bg-gray-900 text-gray-100"
+                placeholder="Ingresa tamaño en px"
+                min="8"
+                max="100"
+              />
+              <span
+                class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"
+              >
+                {{ config.fontSize }} px
+              </span>
+            </div>
           </div>
 
-          <div class="form-group">
-            <label for="backgroundColor" class="block text-sm font-medium">
-              Color de Fondo
+          <!-- Fuente -->
+          <div class="form-control">
+            <label for="fontFamily" class="label">
+              <span class="label-text text-gray-200">Fuente</span>
+            </label>
+            <select
+              id="fontFamily"
+              [(ngModel)]="config.fontFamily"
+              (change)="updateConfig()"
+              class="select select-bordered w-full bg-gray-900 text-gray-100"
+            >
+              <option *ngFor="let font of availableFonts" [value]="font.family">
+                {{ font.family }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Color de Fondo -->
+          <div class="form-control">
+            <label for="backgroundColor" class="label">
+              <span class="label-text text-gray-200">Color de Fondo</span>
             </label>
             <color-compact
               [color]="config.backgroundColor"
               (onChangeComplete)="updateBackgroundColor($event)"
             ></color-compact>
           </div>
-          <div class="form-group">
-            <label for="textColor" class="block text-sm font-medium">
-              Color del Texto
+
+          <!-- Color del Texto -->
+          <div class="form-control">
+            <label for="textColor" class="label">
+              <span class="label-text text-gray-200">Color del Texto</span>
             </label>
             <color-compact
               [color]="config.textColor"
@@ -60,51 +99,46 @@ import { ColorCompactModule } from "ngx-color/compact";
             ></color-compact>
           </div>
 
-          <div class="form-group">
-            <label for="transition" class="block text-sm font-medium">
-              Duración de Transición (ms)
+          <!-- Duración de la Transición -->
+          <div class="form-control">
+            <label for="transition" class="label">
+              <span class="label-text text-gray-200"
+                >Duración de Transición (ms)</span
+              >
             </label>
             <input
               type="number"
               id="transition"
               [(ngModel)]="config.transition"
               (change)="updateConfig()"
-              class="w-full p-2 border border-gray-700 rounded-md bg-gray-900 text-gray-100"
+              class="input input-bordered w-full bg-gray-900 text-gray-100"
             />
           </div>
-          <div class="form-group">
-            <label for="fontFamily" class="block text-sm font-medium">
-              Fuente
-            </label>
-            <input
-              type="text"
-              id="fontFamily"
-              [(ngModel)]="config.fontFamily"
-              (change)="updateConfig()"
-              class="w-full p-2 border border-gray-700 rounded-md bg-gray-900 text-gray-100"
-            />
-          </div>
-          <div class="form-group flex items-center space-x-2">
+
+          <!-- Pantalla Completa -->
+          <div class="form-control flex items-center space-x-2">
             <input
               type="checkbox"
               id="isFullScreen"
               [(ngModel)]="config.isFullScreen"
               (change)="updateConfig()"
-              class="h-4 w-4 text-blue-600 border-gray-700 rounded"
+              class="checkbox bg-gray-600"
             />
-            <label for="isFullScreen" class="text-sm font-medium">
+            <label for="isFullScreen" class="text-gray-200">
               Pantalla Completa
             </label>
           </div>
-          <div class="form-group flex items-center space-x-2">
+
+          <!-- Ventana Abierta -->
+          <div class="form-control flex items-center space-x-2">
             <input
               type="checkbox"
               id="isWindowOpen"
               [(ngModel)]="config.isWindowOpen"
               (change)="updateConfig()"
-              class="h-4 w-4 text-blue-600 border-gray-700 rounded"
+              class="checkbox bg-gray-600"
             />
-            <label for="isWindowOpen" class="text-sm font-medium">
+            <label for="isWindowOpen" class="text-gray-200">
               Ventana Abierta
             </label>
           </div>
@@ -176,31 +210,6 @@ import { ColorCompactModule } from "ngx-color/compact";
         margin-bottom: 8px;
         font-size: 14px;
       }
-      input[type="number"],
-      input[type="text"] {
-        width: 100%;
-        padding: 8px;
-        border: 1px solid #666;
-        border-radius: 4px;
-        background-color: #f1f1f1;
-        color: #333;
-        font-size: 14px;
-        box-sizing: border-box;
-      }
-      input[type="color"] {
-        width: 100%;
-        border: 1px solid #666;
-        padding: 2px;
-        border-radius: 4px;
-        background-color: #f1f1f1;
-        color: #333;
-        font-size: 14px;
-        box-sizing: border-box;
-      }
-      input[type="checkbox"] {
-        width: auto;
-        transform: scale(1.2);
-      }
       @media (max-width: 768px) {
         .tab {
           width: 50px;
@@ -229,13 +238,24 @@ export class WindowPanelComponent implements OnInit {
   config: any = {};
   isHovered: boolean = false;
   isOpen: boolean = false;
+  availableFonts: { family: string }[] = [];
 
   constructor(private presentationService: PresentationService) {}
 
   ngOnInit(): void {
+    // Suscribirse a la configuración actual
     this.presentationService.config$.subscribe((config) => {
       this.config = { ...config };
     });
+
+    this.availableFonts = [
+      { family: "Roboto" },
+      { family: "Open Sans" },
+      { family: "Lato" },
+      { family: "Montserrat" },
+      { family: "Source Sans Pro" },
+      { family: "Arial" }, // Predeterminada
+    ];
   }
 
   updateBackgroundColor(event: any): void {

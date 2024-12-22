@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
 import { BehaviorSubject, Observable, Subject } from "rxjs";
+import { FontFaceService } from "./font-face.service";
 
 interface PresentationConfig {
   fontSize: number;
@@ -68,6 +69,7 @@ export class PresentationService {
     height: 600,
   });
 
+  
   private currentContent = new BehaviorSubject<PresentationContent | null>(
     null
   );
@@ -83,12 +85,34 @@ export class PresentationService {
   private reconnectAttempts = 0;
   private readonly MAX_RECONNECT_ATTEMPTS = 3;
 
-  constructor() {
+  constructor(private fontFaceService: FontFaceService) {
     this.initializeListeners();
     this.loadSavedState();
     this.setupChannelErrorHandling();
     this.setupKeyboardShortcuts();
     this.preloadFonts();
+  }
+
+  private async preloadFonts(): Promise<void> {
+    const fontsToLoad = [
+      { family: 'Roboto', source: 'https://fonts.googleapis.com/css2?family=Roboto&display=swap' },
+      { family: 'Open Sans', source: 'https://fonts.googleapis.com/css2?family=Open+Sans&display=swap' },
+      { family: 'Lato', source: 'https://fonts.googleapis.com/css2?family=Lato&display=swap' },
+      { family: 'Montserrat', source: 'https://fonts.googleapis.com/css2?family=Montserrat&display=swap' },
+      { family: 'Source Sans Pro', source: 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro&display=swap' },
+    ];
+
+    try {
+      await Promise.all(
+        fontsToLoad.map((font) => this.fontFaceService.loadFontsFromCss(font.source))
+      );
+      await Promise.all(
+        fontsToLoad.map((font) => this.fontFaceService.waitForFont(font.family))
+      );
+      console.log('Fuentes pre-cargadas exitosamente');
+    } catch (error) {
+      console.error('Error al pre-cargar fuentes:', error);
+    }
   }
 
   private initializeListeners(): void {
@@ -234,22 +258,6 @@ export class PresentationService {
       type: "blackscreen",
       data: { active: true },
     });
-  }
-
-  private async preloadFonts(): Promise<void> {
-    const fonts = [
-      { family: "Arial" },
-      { family: "Times New Roman" },
-      { family: this.config.getValue().fontFamily },
-    ];
-
-    try {
-      await Promise.all(
-        fonts.map((font) => document.fonts.load(`16px ${font.family}`))
-      );
-    } catch (error) {
-      console.error("Error preloading fonts:", error);
-    }
   }
 
   private handleChannelMessage(event: MessageEvent): void {
