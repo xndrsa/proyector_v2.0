@@ -93,6 +93,10 @@ export class PresentationService {
     this.preloadFonts();
   }
 
+  /**
+   * Carga las fuentes de Google Fonts para pre-cargarlas
+   * @returns Promise<void>
+   */
   private async preloadFonts(): Promise<void> {
     const fontsToLoad = [
       { family: 'Roboto', source: 'https://fonts.googleapis.com/css2?family=Roboto&display=swap' },
@@ -124,6 +128,10 @@ export class PresentationService {
     this.channel.onmessage = (event) => this.handleChannelMessage(event);
   }
 
+  /**
+   * Envía el estado inicial a la ventana de presentación
+   * @returns void
+   */
   private sendInitialState(): void {
     this.channel.postMessage({
       type: "init",
@@ -147,6 +155,10 @@ export class PresentationService {
     }
   }
 
+  /**
+   * Maneja los errores de la ventana de presentación
+   * @returns void
+   */
   private handlePresentationError(): void {
     if (this.reconnectAttempts < this.MAX_RECONNECT_ATTEMPTS) {
       this.reconnectAttempts++;
@@ -157,12 +169,22 @@ export class PresentationService {
     }
   }
 
+  /**
+   * Intenta reconectar con la ventana de presentación
+   * @returns Promise<void>
+   */
   private async reconnectPresentation(): Promise<void> {
     this.closePresentationWindow();
     await new Promise((resolve) => setTimeout(resolve, 1000));
     await this.openPresentationWindow();
   }
 
+  /*
+  ** Espera a que la ventana de presentación confirme la recepción del contenido
+  ** y devuelve un booleano indicando si fue exitoso
+  ** @param content Contenido a enviar
+  ** @returns Promise<boolean>
+  */
   async waitForContentAcknowledgement(
     content: PresentationContent
   ): Promise<boolean> {
@@ -253,6 +275,10 @@ export class PresentationService {
     });
   }
 
+  /**
+   * Activa o desactiva la pantalla negra
+   * @returns void
+   */
   toggleBlackScreen(): void {
     this.channel.postMessage({
       type: "blackscreen",
@@ -260,6 +286,11 @@ export class PresentationService {
     });
   }
 
+  /**
+   * Maneja los mensajes recibidos por el canal de comunicación
+   * @param event Evento de mensaje
+   * @returns void
+   */
   private handleChannelMessage(event: MessageEvent): void {
     const { type, data } = event.data;
     switch (type) {
@@ -277,7 +308,12 @@ export class PresentationService {
         break;
     }
   }
-  // window management
+
+  /**
+   * Abre una nueva ventana de presentacións
+   * @param screenId ID de la pantalla a utilizar
+   * @returns Promise<boolean>
+   */
   async openPresentationWindow(screenId?: number): Promise<boolean> {
     if (this.presentationWindow && !this.presentationWindow.closed) {
       this.presentationWindow.focus();
@@ -319,10 +355,15 @@ export class PresentationService {
       throw new Error("Failed to open presentation window");
     } catch (error) {
       //this.error.next(error.message);
+      console.error("Error opening presentation window:", error);
       return false;
     }
   }
 
+  /**
+   * Cierra la ventana de presentación actual
+   * @returns void
+   */
   closePresentationWindow(): void {
     if (this.presentationWindow && !this.presentationWindow.closed) {
       this.presentationWindow.close();
@@ -330,7 +371,11 @@ export class PresentationService {
     this.cleanup();
   }
 
-  // content management
+  /**
+   * Envía contenido a la ventana de presentación
+   * @param content Contenido a enviar
+   * @returns Promise<void>
+   */
   async sendContent(
     content: Omit<PresentationContent, "timestamp">
   ): Promise<void> {
@@ -347,6 +392,10 @@ export class PresentationService {
     await this.transitionContent(newContent);
   }
 
+  /**
+   * Transiciona el contenido actual a uno nuevo
+   * @param content Nuevo contenido a mostrar
+   */
   private async transitionContent(content: PresentationContent): Promise<void> {
     this.isTransitioning = true;
     this.contentHistory.push(content);
@@ -366,13 +415,21 @@ export class PresentationService {
     }
   }
 
+  /**
+   * Espera a que termine la transición actual antes de continuar
+   * @returns Promise<void>
+   */
   private async waitForTransition(): Promise<void> {
     return new Promise((resolve) =>
       setTimeout(resolve, this.config.getValue().transition)
     );
   }
 
-  // update config for presentations
+  /**
+   * Actualiza la configuración actual
+   * @param newConfig Nueva configuración a aplicar
+   * @returns void
+   */
   updateConfig(newConfig: Partial<PresentationConfig>): void {
     const currentConfig = this.config.getValue();
     const updatedConfig = { ...currentConfig, ...newConfig };
@@ -386,7 +443,10 @@ export class PresentationService {
     });
   }
 
-  // state management
+  /**
+   * Guarda el estado actual en el almacenamiento local
+   * @returns void
+   */
   private saveState(): void {
     const state: PresentationState = {
       config: this.config.getValue(),
@@ -399,6 +459,10 @@ export class PresentationService {
     localStorage.setItem("presentationState", JSON.stringify(state));
   }
 
+  /**
+   * Carga el estado guardado previamente
+   * @returns void
+   */
   private loadSavedState(): void {
     try {
       const saved = localStorage.getItem("presentationState");
@@ -414,6 +478,10 @@ export class PresentationService {
     }
   }
 
+  /**
+   * Activa o desactiva el modo de pantalla completa
+   * @returns Promise<void>
+   */
   async toggleFullScreen(): Promise<void> {
     if (!this.presentationWindow) return;
 
@@ -428,7 +496,10 @@ export class PresentationService {
     }
   }
 
-  // utils
+  /**
+   * Obtiene la lista de pantallas disponibles
+   * @returns Promise<Screen[]>
+   */
   private async getAvailableScreens(): Promise<Screen[]> {
     if ("getScreenDetails" in window.screen) {
       try {
@@ -441,6 +512,10 @@ export class PresentationService {
     return [];
   }
 
+  /**
+   * Observa la posición de la ventana de presentación
+   * @returns void
+   */
   private watchWindowPosition(): void {
     if (!this.presentationWindow) return;
 
@@ -459,6 +534,10 @@ export class PresentationService {
     checkPosition();
   }
 
+  /**
+   * Limpia el estado de la ventana de presentación
+   * @returns void
+   */
   private cleanup(): void {
     this.presentationWindow = null;
     this.updateConfig({ isWindowOpen: false, isFullScreen: false });
