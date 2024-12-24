@@ -4,17 +4,23 @@ import { BibleService } from "../../services/bible.service";
 import { books, Book, Version, getVersionName } from "../../constants";
 import { TestamentSelectorComponent } from "../../components/testament-selector/testament-selector.component";
 import { VersionChaptersComponent } from "../../components/version-chapters/version-chapters.component";
+import { VersePanelComponent } from "../../components/verse-panel/verse-panel.component";
 
 @Component({
   selector: "app-bible",
   standalone: true,
-  imports: [CommonModule, TestamentSelectorComponent, VersionChaptersComponent],
+  imports: [
+    CommonModule,
+    TestamentSelectorComponent,
+    VersionChaptersComponent,
+    VersePanelComponent,
+  ],
   template: `
     <div class="flex h-screen bg-gray-100">
       <div class="flex-1 grid grid-cols-6 gap-4 p-4">
         <!-- Left Panel (Libros) -->
         <div
-          class="col-span-2 bg-white p-4 shadow-md rounded flex flex-col max-h-[calc(100vh-2rem)] overflow-hidden"
+          class="col-span-2 bg-white p-4 shadow-md rounded flex flex-col h-[calc(100vh-2rem)] overflow-hidden"
         >
           <app-testament-selector
             [activeTab]="activeTab"
@@ -30,45 +36,20 @@ import { VersionChaptersComponent } from "../../components/version-chapters/vers
           [selectedVersion]="selectedVersion"
           [selectedBook]="selectedBook"
           [chapters]="chapters"
+          class="h-[calc(100vh-2rem)]"
           (versionSelected)="onVersionSelect($event)"
           (chapterSelected)="onChapterSelect($event)"
         ></app-version-chapters>
 
         <!-- Right Panel (Versículos) -->
-        <div
-          class="col-span-3 bg-white p-4 shadow-md rounded overflow-y-auto max-h-[calc(100vh-2rem)] verse-panel"
-        >
-          <h2
-            class="text-xl font-semibold mb-4 text-center text-blue-600 border-b-2 pb-2 border-blue-300"
-          >
-            {{ selectedBook ? selectedBook.names[0] : "Libro no seleccionado" }}
-            {{ selectedChapter ?? "" }} -
-            {{ selectedVersion ?? "Versión no seleccionada" }}
-          </h2>
-
-          <div
-            *ngIf="isLoadingVerses"
-            class="w-full text-center py-4 flex justify-center items-center"
-          >
-            <div class="loader"></div>
-            <p class="text-gray-500 text-sm ml-2">Cargando versículos...</p>
-          </div>
-
-          <ng-container *ngIf="!isLoadingVerses">
-            <ng-container *ngIf="verses && verses.length > 0; else noVerses">
-              <div class="verse" *ngFor="let verse of verses">
-                <span class="verse-number">{{ verse.number }}</span>
-                <span class="verse-text">{{ verse.verse }}</span>
-              </div>
-            </ng-container>
-            <ng-template #noVerses>
-              <div class="p-4 text-center text-gray-500">
-                Selecciona una versión, un libro y un capítulo para cargar
-                versículos.
-              </div>
-            </ng-template>
-          </ng-container>
-        </div>
+        <app-verse-panel
+          class="col-span-3"
+          [isLoadingVerses]="isLoadingVerses"
+          [selectedBook]="selectedBook"
+          [selectedChapter]="selectedChapter"
+          [selectedVersion]="selectedVersion"
+          [verses]="verses"
+        ></app-verse-panel>
       </div>
     </div>
   `,
@@ -197,35 +178,63 @@ export class BibleComponent implements OnInit {
   }
 
   onVersionSelect(versionId: Version): void {
-    console.log("Versión seleccionada:", versionId); // Depuración
-    this.selectedVersion = versionId; // Actualiza la versión seleccionada
+    //console.log("Versión seleccionada:", versionId);
+
+    this.selectedVersion = versionId;
     this.selectedBook = null; // Reinicia el libro seleccionado
     this.selectedChapter = null; // Reinicia el capítulo seleccionado
     this.chapters = []; // Limpia los capítulos
     this.verses = []; // Limpia los versículos
-  }
-  
 
-  onBookSelect(book: Book) {
+    // Si el libro seleccionado ya no es válido para la nueva versión, notifica a los componentes hijos
+    if (!this.selectedBook) {
+      this.resetChildComponents();
+    }
+  }
+
+  onBookSelect(book: Book): void {
+    //console.log("Libro seleccionado:", book);
+
+    // Actualizar el libro seleccionado
     this.selectedBook = book;
+
+    // Actualizar la lista de capítulos disponibles para el libro
     this.chapters = Array.from({ length: book.chapters }, (_, i) => i + 1);
+
+    // Reiniciar el capítulo seleccionado para requerir que el usuario lo elija
+    this.selectedChapter = null;
+    this.verses = []; // Limpia los versículos porque no hay un capítulo seleccionado
   }
 
-  onChapterSelect(chapter: number) {
+  onChapterSelect(chapter: number): void {
+    console.log("Capítulo seleccionado:", chapter);
     this.selectedChapter = chapter;
     this.loadVerses();
   }
 
-  loadVerses() {
-    if (!this.selectedVersion || !this.selectedBook || !this.selectedChapter)
+  resetChildComponents(): void {
+    this.selectedBook = null;
+    this.selectedChapter = null;
+    this.chapters = [];
+    this.verses = [];
+  }
+
+  loadVerses(): void {
+    if (!this.selectedVersion || !this.selectedBook || !this.selectedChapter) {
+      console.warn("No se puede cargar versículos. Faltan dependencias.");
       return;
+    }
+
+    console.log(
+      `Cargando versículos para: versión ${this.selectedVersion}, libro ${this.selectedBook.names[0]}, capítulo ${this.selectedChapter}`
+    );
 
     this.isLoadingVerses = true;
 
     this.bibleService
       .getVerseRange(
         this.selectedVersion,
-        this.selectedBook.apiName, // Se usa apiName aquí
+        this.selectedBook.apiName,
         this.selectedChapter,
         1,
         "200"
@@ -233,31 +242,25 @@ export class BibleComponent implements OnInit {
       .subscribe({
         next: (data) => {
           try {
-            console.log("Respuesta de la API (original):", data.text);
-
             if (Array.isArray(data.text)) {
               this.verses = data.text.map((v: any) => ({
                 number: v.number,
                 verse: v.verse,
               }));
-            } else if (typeof data.text === "string") {
-              const sanitizedText = data.text.replace(/'/g, '"');
-              this.verses = JSON.parse(sanitizedText).map((v: any) => ({
-                number: v.number,
-                verse: v.verse,
-              }));
             } else {
-              console.warn("Formato inesperado en data.text:", data.text);
+              console.warn("Formato inesperado de datos:", data.text);
               this.verses = [];
             }
-
-            this.isLoadingVerses = false;
           } catch (error) {
-            console.error("Error al procesar versículos:", error);
-            console.error("Texto recibido:", data.text);
+            console.error("Error procesando los versículos:", error);
             this.verses = [];
+          } finally {
             this.isLoadingVerses = false;
           }
+        },
+        error: (err) => {
+          console.error("Error al cargar versículos:", err);
+          this.isLoadingVerses = false;
         },
       });
   }

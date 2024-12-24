@@ -210,8 +210,13 @@ export class TestamentSelectorComponent {
   }
 
   selectBook(book: Book): void {
+    if (!this.selectedVersion) {
+      console.warn("No se puede seleccionar un libro sin una versión activa.");
+      return;
+    }
+  
     this.selectedBook = book;
-
     this.bookSelected.emit(book);
   }
+  
 }

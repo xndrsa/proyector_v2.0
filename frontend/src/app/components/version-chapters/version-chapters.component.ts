@@ -1,5 +1,11 @@
 import { CommonModule } from "@angular/common";
-import { Component, EventEmitter, Input, Output } from "@angular/core";
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  SimpleChanges,
+} from "@angular/core";
 import { Book, Version } from "../../constants";
 
 @Component({
@@ -8,58 +14,69 @@ import { Book, Version } from "../../constants";
   imports: [CommonModule],
   template: `
     <div
-      class="col-span-1 bg-white p-2 shadow-md rounded flex flex-col items-center max-h-[calc(100vh-2rem)] overflow-y-auto h-full"
+      class="col-span-1 bg-white p-4 shadow-md rounded flex flex-col items-center max-h-[calc(100vh-2rem)] overflow-y-auto h-full"
     >
-      <!-- Versiones -->
+      <!-- Título de las Versiones -->
       <div class="w-full mb-2 text-center font-semibold text-gray-700">
         Versiones
       </div>
 
+      <!-- Indicador de carga -->
       <div
         *ngIf="isLoading"
-        class="w-full text-center py-4 flex justify-center items-center"
+        class="w-full text-center py-4 flex flex-col justify-center items-center"
+        aria-live="polite"
       >
         <div class="loader"></div>
-        <p class="text-gray-500 text-sm ml-2">Cargando versiones...</p>
+        <p class="text-gray-500 text-sm mt-2">Cargando versiones...</p>
       </div>
 
+      <!-- Lista de Versiones -->
       <ng-container *ngIf="!isLoading">
         <ng-container *ngIf="versions && versions.length > 0; else noVersions">
-          <button
-            *ngFor="let v of versions"
-            (click)="onVersionSelect(v.id)"
-            [ngClass]="{
-              'bg-blue-500 text-white': selectedVersion === v.id,
-              'bg-gray-200 hover:bg-gray-300': selectedVersion !== v.id
-            }"
-            class="w-full mb-2 py-2 text-sm rounded animated-hover"
-          >
-            {{ v.name }}
-          </button>
+          <div class="w-full">
+            <button
+              *ngFor="let v of versions"
+              (click)="onVersionSelect(v.id)"
+              [attr.aria-selected]="selectedVersion === v.id"
+              [ngClass]="{
+                'bg-blue-500 text-white border-blue-600':
+                  selectedVersion === v.id,
+                'bg-gray-200 hover:bg-gray-300': selectedVersion !== v.id
+              }"
+              class="w-full mb-2 py-2 text-sm rounded animated-hover border"
+            >
+              {{ v.name }}
+            </button>
+          </div>
         </ng-container>
         <ng-template #noVersions>
-          <div class="p-4 text-center text-gray-500">
-            No hay versiones disponibles.
+          <div class="p-4 text-center text-gray-500 text-sm">
+            No hay versiones disponibles en este momento.
           </div>
         </ng-template>
       </ng-container>
 
-      <!-- Capítulos -->
-      <div class="w-full mb-4 text-center font-semibold text-gray-700">
+      <!-- Título de los Capítulos -->
+      <div class="w-full mb-4 mt-4 text-center font-semibold text-gray-700">
         Capítulos
       </div>
-      <div class="grid grid-cols-4 gap-2">
+
+      <!-- Lista de Capítulos -->
+      <div class="grid grid-cols-4 gap-2 w-full">
         <ng-container
           *ngIf="selectedVersion && selectedBook; else noBookOrVersion"
         >
           <button
             *ngFor="let number of chapters"
             (click)="onChapterSelect(number)"
+            [attr.aria-selected]="selectedChapter === number"
             [ngClass]="{
-              'bg-blue-500 text-white': selectedChapter === number,
+              'bg-blue-500 text-white border-blue-600':
+                selectedChapter === number,
               'bg-gray-300 hover:bg-gray-400': selectedChapter !== number
             }"
-            class="p-2 text-xs rounded animated-hover"
+            class="p-2 text-xs rounded animated-hover border"
           >
             {{ number }}
           </button>
@@ -68,10 +85,9 @@ import { Book, Version } from "../../constants";
           <div class="col-span-4 p-4 text-center text-gray-500 text-sm">
             {{
               !selectedVersion
-                ? "Selecciona una versión"
-                : "Selecciona un libro"
+                ? "Por favor, selecciona una versión primero."
+                : "Selecciona un libro antes de elegir un capítulo."
             }}
-            antes de elegir un capítulo.
           </div>
         </ng-template>
       </div>
@@ -120,20 +136,44 @@ export class VersionChaptersComponent {
   @Output() versionSelected = new EventEmitter<Version>();
   @Output() chapterSelected = new EventEmitter<number>();
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes["selectedBook"] && changes["selectedBook"].currentValue) {
+      this.selectedChapter = null;
+      console.log("Por favor, selecciona un capítulo.");
+    }
+
+    if (
+      changes["selectedVersion"] &&
+      !changes["selectedVersion"].currentValue
+    ) {
+      this.selectedBook = null;
+      this.selectedChapter = null;
+      this.chapters = [];
+    }
+  }
+
   onVersionSelect(versionId: string): void {
+    // Si el versionId es igual al seleccionado actualmente, no hacemos nada
+    if (versionId === this.selectedVersion) {
+      return;
+    }
+
     const versionEnum = Object.values(Version).find((v) => v === versionId) as
       | Version
       | undefined;
     if (versionEnum) {
-      this.selectedVersion = versionEnum; // Actualiza el estado local
-      this.versionSelected.emit(versionEnum); // Emitimos el evento al padre
-    } else {
-      console.warn(`Versión desconocida seleccionada: ${versionId}`);
+      this.selectedVersion = versionEnum;
+      this.versionSelected.emit(versionEnum);
     }
   }
 
   onChapterSelect(chapter: number): void {
-    this.selectedChapter = chapter; // Actualizamos el capítulo seleccionado
-    this.chapterSelected.emit(chapter); // Emitimos el evento
+    // Si el capítulo es igual al seleccionado actualmente, no hacemos nada
+    if (chapter === this.selectedChapter) {
+      return;
+    }
+
+    this.selectedChapter = chapter;
+    this.chapterSelected.emit(chapter);
   }
 }
