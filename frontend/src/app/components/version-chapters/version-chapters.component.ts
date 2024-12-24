@@ -34,7 +34,7 @@ import { Book, Version } from "../../constants";
       <!-- Lista de Versiones -->
       <ng-container *ngIf="!isLoading">
         <ng-container *ngIf="versions && versions.length > 0; else noVersions">
-          <div class="w-full">
+          <div class="grid grid-cols-2 gap-2 w-full">
             <button
               *ngFor="let v of versions"
               (click)="onVersionSelect(v.id)"
@@ -44,7 +44,7 @@ import { Book, Version } from "../../constants";
                   selectedVersion === v.id,
                 'bg-gray-200 hover:bg-gray-300': selectedVersion !== v.id
               }"
-              class="w-full mb-2 py-2 text-sm rounded animated-hover border"
+              class="py-2 text-xs rounded animated-hover border"
             >
               {{ v.name }}
             </button>
@@ -82,7 +82,7 @@ import { Book, Version } from "../../constants";
           </button>
         </ng-container>
         <ng-template #noBookOrVersion>
-          <div class="col-span-4 p-4 text-center text-gray-500 text-sm">
+          <div class="col-span-6 p-4 text-center text-gray-500 text-sm">
             {{
               !selectedVersion
                 ? "Por favor, selecciona una versión primero."

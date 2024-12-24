@@ -1,5 +1,6 @@
 import { CommonModule } from "@angular/common";
 import { Component, Input } from "@angular/core";
+import { BibleStateService } from "../../services/bible-state.service";
 
 @Component({
   selector: "app-verse-panel",
