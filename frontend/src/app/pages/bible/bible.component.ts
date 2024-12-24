@@ -129,60 +129,6 @@ import { TestamentSelectorComponent } from "../../components/testament-selector/
   `,
   styles: [
     `
-      .book-panel {
-        background: linear-gradient(to bottom, #ffffff, #f9f9f9);
-        border: 1px solid #e5e7eb;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      }
-
-      .search-input {
-        font-size: 1rem;
-        border: 1px solid #d1d5db;
-        transition: border-color 0.3s ease, box-shadow 0.3s ease;
-      }
-
-      .search-input:focus {
-        border-color: #60a5fa;
-        box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
-      }
-
-      .tab-button {
-        font-size: 1rem;
-        font-weight: bold;
-        border-bottom: 2px solid transparent;
-        transition: color 0.3s ease, border-color 0.3s ease;
-      }
-
-      .tab-button:hover {
-        color: #2563eb;
-      }
-
-      .active-tab {
-        color: #2563eb;
-        border-color: #2563eb;
-      }
-
-      .book-list ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-
-      .book-list li {
-        font-size: 0.95rem;
-        color: #4b5563;
-        transition: background-color 0.3s ease, transform 0.3s ease;
-      }
-
-      .book-list li:hover {
-        background-color: #f3f4f6;
-        transform: scale(1.03);
-      }
-
-      .book-list {
-        padding: 0.5rem;
-      }
-
       .loader {
         border: 4px solid #f3f3f3;
         border-top: 4px solid #3498db;
@@ -254,7 +200,7 @@ export class BibleComponent implements OnInit {
   selectedBook: Book | null = null;
   selectedChapter: number | null = null;
   verses: { number: number; verse: string }[] = [];
-  searchQuery = "";
+  //searchQuery = "";
 
   private mapToVersionEnum(version: string): Version | null {
     switch (version) {
@@ -367,22 +313,5 @@ export class BibleComponent implements OnInit {
           }
         },
       });
-  }
-
-  filteredBooks(testament: "AT" | "NT"): Book[] {
-    return books
-      .filter(
-        (book) =>
-          book.testament ===
-          (testament === "AT" ? "Antiguo Testamento" : "Nuevo Testamento")
-      )
-      .filter((book) =>
-        book.names[0].toLowerCase().includes(this.searchQuery.toLowerCase())
-      );
-  }
-
-  onSearchBooks(event: Event) {
-    const input = event.target as HTMLInputElement;
-    this.searchQuery = input.value;
   }
 }

@@ -7,63 +7,58 @@ import { books, Book } from "../../constants";
   standalone: true,
   imports: [CommonModule],
   template: `
-    <!-- Search Input -->
     <div class="relative mb-4">
       <input
+        #searchInput
         type="text"
-        placeholder="Filtrar libros"
-        class="w-full border p-2 rounded search-input focus:outline-none focus:ring-2 focus:ring-blue-500"
+        placeholder=""
+        class="w-full border p-2 pl-10 rounded search-input focus:outline-none focus:ring-2 focus:ring-blue-500"
         (input)="onSearchBooks($event)"
       />
-      <span class="absolute right-3 top-2 text-gray-400 text-lg">🔍</span>
+      <span class="material-icons absolute left-3 top-2 text-gray-400"
+        >search</span
+      >
+      <button
+        *ngIf="searchQuery"
+        (click)="clearSearch(searchInput)"
+        class="absolute right-3 top-2 text-gray-400 hover:text-gray-600"
+      >
+        <span class="material-icons">backspace</span>
+      </button>
     </div>
 
-    <!-- Tabs -->
-    <div class="flex mb-4 border-b">
+    <div class="flex mb-4 tab-container border-b border-gray-200">
       <button
-        (click)="activeTab = 'AT'"
+        (click)="setActiveTab('AT')"
         [class.active-tab]="activeTab === 'AT'"
-        class="tab-button w-1/2 text-center py-2"
+        class="tab-button flex-1 py-2 px-4 text-center "
       >
-        AT
+        Antiguo Testamento
       </button>
       <button
-        (click)="activeTab = 'NT'"
+        (click)="setActiveTab('NT')"
         [class.active-tab]="activeTab === 'NT'"
-        class="tab-button w-1/2 text-center py-2"
+        class="tab-button flex-1 py-2 px-4 text-center "
       >
-        NT
+        Nuevo Testamento
       </button>
     </div>
 
-    <!-- Book List -->
-    <div class="flex-1 overflow-y-auto border-t book-list">
+    <div class="flex-1 overflow-y-auto book-list">
       <ng-container *ngIf="selectedVersion; else noVersionSelected">
-        <ng-container *ngIf="activeTab === 'AT'">
-          <ul>
-            <li
-              *ngFor="let book of filteredBooks('AT')"
-              (click)="selectBook(book)"
-              class="p-3 hover:bg-gray-200 cursor-pointer rounded transition ease-in-out hover:scale-105"
-            >
-              {{ book.names[0] }}
-            </li>
-          </ul>
-        </ng-container>
-        <ng-container *ngIf="activeTab === 'NT'">
-          <ul>
-            <li
-              *ngFor="let book of filteredBooks('NT')"
-              (click)="selectBook(book)"
-              class="p-3 hover:bg-gray-200 cursor-pointer rounded transition ease-in-out hover:scale-105"
-            >
-              {{ book.names[0] }}
-            </li>
-          </ul>
-        </ng-container>
+        <ul>
+          <li
+            *ngFor="let book of filteredBooks"
+            (click)="selectBook(book)"
+            [class.selected-book]="selectedBook === book"
+            class="book-item"
+          >
+            {{ book.names[0] }}
+          </li>
+        </ul>
       </ng-container>
       <ng-template #noVersionSelected>
-        <div class="p-4 text-center text-gray-500">
+        <div class="no-version-message">
           Selecciona una versión primero.
         </div>
       </ng-template>
@@ -73,86 +68,150 @@ import { books, Book } from "../../constants";
     `
       .search-input {
         font-size: 1rem;
-        border: 1px solid #d1d5db;
-        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        border: 1px solid #e2e8f0;
+        background-color: #f8fafc;
+        transition: all 0.2s ease;
       }
 
       .search-input:focus {
-        border-color: #60a5fa;
-        box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
+        background-color: white;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+      }
+
+      .tab-container {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        background-color: #f8fafc;
       }
 
       .tab-button {
         font-size: 1rem;
-        font-weight: bold;
-        border-bottom: 2px solid transparent;
-        transition: color 0.3s ease, border-color 0.3s ease;
+        font-weight: 600;
+        color: #64748b;
+        border: 1px solid transparent;
+        background-color: #f8fafc;
+        transition: all 0.3s ease;
+        cursor: pointer;
       }
 
       .tab-button:hover {
-        color: #2563eb;
+        background-color: #e2e8f0;
+        color: #3b82f6;
       }
 
-      .active-tab {
-        color: #2563eb;
-        border-color: #2563eb;
+      .tab-button.active-tab {
+        background-color: #ffffff;
+        color: #3b82f6;
+        border-bottom: 2px solid #3b82f6;
+        font-weight: bold;
+        box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.1);
       }
 
       .book-list {
-  flex: 1; /* Asegura que la lista ocupe todo el espacio disponible */
-  overflow-y: auto; /* Habilita el scroll si la lista es demasiado larga */
-  padding: 0.5rem;
-  max-height: calc(100vh - 8rem); /* Ajusta el máximo de altura relativo a la ventana */
-}
-
-      .book-list ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
+        max-height: calc(100vh - 10rem);
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 #f1f5f9;
       }
 
-      .book-list li {
+      .book-list::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .book-list::-webkit-scrollbar-track {
+        background: #f1f5f9;
+      }
+
+      .book-list::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 3px;
+      }
+
+      .book-item {
+        padding: 0.75rem 1rem;
+        margin: 0.25rem 0;
         font-size: 0.95rem;
-        color: #4b5563;
-        transition: background-color 0.3s ease, transform 0.3s ease;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
       }
 
-      .book-list li:hover {
-        background-color: #f3f4f6;
-        transform: scale(1.03);
+      .book-item:hover {
+        background-color: #f1f5f9;
+        border-color: #e2e8f0;
+        transform: translateX(4px);
       }
 
-      .book-list {
-        padding: 0.5rem;
+      .book-item.selected-book {
+        background-color: #F1F1F1;
+        color: black;
+        font-weight: bold;
+        border-color: rgb(212 212 212);
+        transform: none; /* Eliminar la animación de desplazamiento para el seleccionado */
+      }
+
+      .no-version-message {
+        padding: 1rem;
+        text-align: center;
+        color: #64748b;
+        font-style: italic;
       }
     `,
   ],
 })
 export class TestamentSelectorComponent {
   @Input() activeTab: "AT" | "NT" = "AT";
-  @Input() selectedVersion: boolean = true; // Indica si hay una versión seleccionada
+  @Input() selectedVersion: boolean = true;
   @Output() bookSelected = new EventEmitter<Book>();
+  selectedBook: Book | null = null;
 
   searchQuery: string = "";
+  private booksCache = {
+    AT: books.filter((book) => book.testament === "Antiguo Testamento"),
+    NT: books.filter((book) => book.testament === "Nuevo Testamento"),
+  };
+  filteredBooks: Book[] = [...this.booksCache.AT];
 
-  filteredBooks(testament: "AT" | "NT"): Book[] {
-    return books
-      .filter(
-        (book) =>
-          book.testament ===
-          (testament === "AT" ? "Antiguo Testamento" : "Nuevo Testamento")
-      )
-      .filter((book) =>
-        book.names[0].toLowerCase().includes(this.searchQuery.toLowerCase())
+  setActiveTab(tab: "AT" | "NT"): void {
+    this.activeTab = tab;
+    this.filterBooks();
+  }
+
+  onSearchBooks(event: Event): void {
+    const input = (event.target as HTMLInputElement).value.toLowerCase();
+    this.searchQuery = this.removeAccents(input);
+    this.filterBooks();
+  }
+
+  clearSearch(input: HTMLInputElement): void {
+    input.value = "";
+    this.searchQuery = "";
+    this.filterBooks();
+    input.focus();
+  }
+
+  private filterBooks(): void {
+    const books = this.booksCache[this.activeTab];
+    if (this.searchQuery) {
+      this.filteredBooks = books.filter((book) =>
+        book.names.some((name) =>
+          this.removeAccents(name.toLowerCase()).includes(this.searchQuery)
+        )
       );
+    } else {
+      this.filteredBooks = books;
+    }
   }
 
-  onSearchBooks(event: Event) {
-    const input = event.target as HTMLInputElement;
-    this.searchQuery = input.value;
+  private removeAccents(str: string): string {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   }
 
-  selectBook(book: Book) {
+  selectBook(book: Book): void {
+    this.selectedBook = book;
+
     this.bookSelected.emit(book);
   }
 }
