@@ -3,17 +3,18 @@ import { CommonModule } from "@angular/common";
 import { BibleService } from "../../services/bible.service";
 import { books, Book, Version, getVersionName } from "../../constants";
 import { TestamentSelectorComponent } from "../../components/testament-selector/testament-selector.component";
+import { VersionChaptersComponent } from "../../components/version-chapters/version-chapters.component";
 
 @Component({
   selector: "app-bible",
   standalone: true,
-  imports: [CommonModule, TestamentSelectorComponent],
+  imports: [CommonModule, TestamentSelectorComponent, VersionChaptersComponent],
   template: `
     <div class="flex h-screen bg-gray-100">
       <div class="flex-1 grid grid-cols-6 gap-4 p-4">
         <!-- Left Panel (Libros) -->
         <div
-        class="col-span-2 bg-white p-4 shadow-md rounded flex flex-col max-h-[calc(100vh-2rem)] overflow-hidden"
+          class="col-span-2 bg-white p-4 shadow-md rounded flex flex-col max-h-[calc(100vh-2rem)] overflow-hidden"
         >
           <app-testament-selector
             [activeTab]="activeTab"
@@ -23,71 +24,15 @@ import { TestamentSelectorComponent } from "../../components/testament-selector/
         </div>
 
         <!-- Middle Panel (Versiones y Capítulos) -->
-        <div
-          class="col-span-1 bg-white p-2 shadow-md rounded flex flex-col items-center max-h-[calc(100vh-2rem)] overflow-y-auto"
-        >
-          <div class="w-full mb-2 text-center font-semibold text-gray-700">
-            Versiones
-          </div>
-
-          <div
-            *ngIf="isLoading"
-            class="w-full text-center py-4 flex justify-center items-center"
-          >
-            <div class="loader"></div>
-            <p class="text-gray-500 text-sm ml-2">Cargando versiones...</p>
-          </div>
-
-          <ng-container *ngIf="!isLoading">
-            <ng-container
-              *ngIf="versions && versions.length > 0; else noVersions"
-            >
-              <button
-                *ngFor="let v of versions"
-                (click)="onVersionSelect(v.id)"
-                [ngClass]="{
-                  'bg-blue-500 text-white': selectedVersion === v.id,
-                  'bg-gray-200 hover:bg-gray-300': selectedVersion !== v.id
-                }"
-                class="w-full mb-2 py-2 text-sm rounded animated-hover"
-              >
-                {{ v.name }}
-              </button>
-            </ng-container>
-            <ng-template #noVersions>
-              <div class="p-4 text-center text-gray-500">
-                No hay versiones disponibles.
-              </div>
-            </ng-template>
-          </ng-container>
-
-          <div class="w-full mb-4 text-center font-semibold text-gray-700">
-            Capítulos
-          </div>
-          <div class="grid grid-cols-4 gap-2">
-            <ng-container
-              *ngIf="selectedVersion && selectedBook; else noBookOrVersion"
-            >
-              <button
-                *ngFor="let number of chapters"
-                (click)="onChapterSelect(number)"
-                class="bg-gray-300 p-2 text-xs rounded hover:bg-gray-400 animated-hover"
-              >
-                {{ number }}
-              </button>
-            </ng-container>
-            <ng-template #noBookOrVersion>
-              <div class="col-span-4 p-4 text-center text-gray-500 text-sm">
-                {{
-                  !selectedVersion
-                    ? "Selecciona una versión"
-                    : "Selecciona un libro"
-                }}
-                antes de elegir un capítulo.
-              </div>
-            </ng-template>
-          </div>
-        </div>
+        <app-version-chapters
+          [isLoading]="isLoading"
+          [versions]="versions"
+          [selectedVersion]="selectedVersion"
+          [selectedBook]="selectedBook"
+          [chapters]="chapters"
+          (versionSelected)="onVersionSelect($event)"
+          (chapterSelected)="onChapterSelect($event)"
+        ></app-version-chapters>
 
         <!-- Right Panel (Versículos) -->
         <div
@@ -251,13 +196,15 @@ export class BibleComponent implements OnInit {
     });
   }
 
-  onVersionSelect(versionId: Version) {
-    this.selectedVersion = versionId;
-    this.selectedBook = null;
-    this.selectedChapter = null;
-    this.chapters = [];
-    this.verses = [];
+  onVersionSelect(versionId: Version): void {
+    console.log("Versión seleccionada:", versionId); // Depuración
+    this.selectedVersion = versionId; // Actualiza la versión seleccionada
+    this.selectedBook = null; // Reinicia el libro seleccionado
+    this.selectedChapter = null; // Reinicia el capítulo seleccionado
+    this.chapters = []; // Limpia los capítulos
+    this.verses = []; // Limpia los versículos
   }
+  
 
   onBookSelect(book: Book) {
     this.selectedBook = book;
