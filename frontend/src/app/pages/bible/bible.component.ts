@@ -2,11 +2,12 @@ import { Component, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { BibleService } from "../../services/bible.service";
 import { books, Book, Version, getVersionName } from "../../constants";
+import { TestamentSelectorComponent } from "../../components/testament-selector/testament-selector.component";
 
 @Component({
   selector: "app-bible",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TestamentSelectorComponent],
   template: `
     <div class="flex h-screen bg-gray-100">
       <div class="flex-1 grid grid-cols-6 gap-4 p-4">
@@ -14,67 +15,11 @@ import { books, Book, Version, getVersionName } from "../../constants";
         <div
           class="col-span-2 bg-white p-4 shadow-md rounded flex flex-col max-h-[calc(100vh-2rem)] book-panel"
         >
-          <!-- Search Input -->
-          <div class="relative mb-4">
-            <input
-              type="text"
-              placeholder="Filtrar libros"
-              class="w-full border p-2 rounded search-input focus:outline-none focus:ring-2 focus:ring-blue-500"
-              (input)="onSearchBooks($event)"
-            />
-            <span class="absolute right-3 top-2 text-gray-400 text-lg">🔍</span>
-          </div>
-
-          <!-- Tabs -->
-          <div class="flex mb-4 border-b">
-            <button
-              (click)="activeTab = 'AT'"
-              [class.active-tab]="activeTab === 'AT'"
-              class="tab-button w-1/2 text-center py-2"
-            >
-              AT
-            </button>
-            <button
-              (click)="activeTab = 'NT'"
-              [class.active-tab]="activeTab === 'NT'"
-              class="tab-button w-1/2 text-center py-2"
-            >
-              NT
-            </button>
-          </div>
-
-          <!-- Book List -->
-          <div class="flex-1 overflow-y-auto border-t book-list">
-            <ng-container *ngIf="selectedVersion; else noVersionSelected">
-              <ng-container *ngIf="activeTab === 'AT'">
-                <ul>
-                  <li
-                    *ngFor="let book of filteredBooks('AT')"
-                    (click)="onBookSelect(book)"
-                    class="p-3 hover:bg-gray-200 cursor-pointer rounded transition ease-in-out hover:scale-105"
-                  >
-                    {{ book.names[0] }}
-                  </li>
-                </ul>
-              </ng-container>
-              <ng-container *ngIf="activeTab === 'NT'">
-                <ul>
-                  <li
-                    *ngFor="let book of filteredBooks('NT')"
-                    (click)="onBookSelect(book)"
-                    class="p-3 hover:bg-gray-200 cursor-pointer rounded transition ease-in-out hover:scale-105"
-                  >
-                    {{ book.names[0] }}
-                  </li>
-                </ul>
-              </ng-container>
-            </ng-container>
-            <ng-template #noVersionSelected>
-              <div class="p-4 text-center text-gray-500">
-                Selecciona una versión primero.
-              </div>
-            </ng-template>
-          </div>
+          <app-testament-selector
+            [activeTab]="activeTab"
+            [selectedVersion]="!!selectedVersion"
+            (bookSelected)="onBookSelect($event)"
+          ></app-testament-selector>
         </div>
 
         <!-- Middle Panel (Versiones y Capítulos) -->
