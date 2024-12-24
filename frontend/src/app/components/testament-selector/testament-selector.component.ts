@@ -98,6 +98,13 @@ import { books, Book } from "../../constants";
         border-color: #2563eb;
       }
 
+      .book-list {
+  flex: 1; /* Asegura que la lista ocupe todo el espacio disponible */
+  overflow-y: auto; /* Habilita el scroll si la lista es demasiado larga */
+  padding: 0.5rem;
+  max-height: calc(100vh - 8rem); /* Ajusta el máximo de altura relativo a la ventana */
+}
+
       .book-list ul {
         list-style: none;
         padding: 0;

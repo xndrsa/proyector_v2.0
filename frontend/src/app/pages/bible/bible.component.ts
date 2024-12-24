@@ -13,7 +13,7 @@ import { TestamentSelectorComponent } from "../../components/testament-selector/
       <div class="flex-1 grid grid-cols-6 gap-4 p-4">
         <!-- Left Panel (Libros) -->
         <div
-          class="col-span-2 bg-white p-4 shadow-md rounded flex flex-col max-h-[calc(100vh-2rem)] book-panel"
+        class="col-span-2 bg-white p-4 shadow-md rounded flex flex-col max-h-[calc(100vh-2rem)] overflow-hidden"
         >
           <app-testament-selector
             [activeTab]="activeTab"
