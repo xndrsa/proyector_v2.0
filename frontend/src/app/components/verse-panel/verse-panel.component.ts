@@ -1,6 +1,9 @@
 import { CommonModule } from "@angular/common";
-import { Component, Input } from "@angular/core";
-import { BibleStateService } from "../../services/bible-state.service";
+import { Component, Input, Output, EventEmitter } from "@angular/core";
+import {
+  PresentationService,
+  VerseData,
+} from "../../services/presentation.service";
 
 @Component({
   selector: "app-verse-panel",
@@ -28,7 +31,11 @@ import { BibleStateService } from "../../services/bible-state.service";
 
       <ng-container *ngIf="!isLoadingVerses">
         <ng-container *ngIf="verses && verses.length > 0; else noVerses">
-          <div class="verse" *ngFor="let verse of verses">
+          <div
+            class="verse"
+            *ngFor="let verse of verses"
+            (click)="onVerseClick(verse)"
+          >
             <span class="verse-number">{{ verse.number }}</span>
             <span class="verse-text">{{ verse.verse }}</span>
           </div>
@@ -111,4 +118,23 @@ export class VersePanelComponent {
   @Input() selectedChapter: number | null = null;
   @Input() selectedVersion: string | null = null;
   @Input() verses: { number: number; verse: string }[] = [];
+
+  @Output() verseClicked = new EventEmitter<VerseData>();
+
+  constructor(private presentationService: PresentationService) {}
+
+  onVerseClick(verse: { number: number; verse: string }): void {
+    if (this.selectedBook && this.selectedChapter) {
+      const reference = `${this.selectedBook.names[0]} ${this.selectedChapter}:${verse.number}`;
+      const verseData: VerseData = {
+        text: verse.verse,
+        reference: reference,
+      };
+      this.verseClicked.emit(verseData);
+      this.presentationService.sendContent({
+        type: "verse",
+        content: verseData,
+      });
+    }
+  }
 }

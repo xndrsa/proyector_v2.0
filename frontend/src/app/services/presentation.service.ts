@@ -1,7 +1,12 @@
 import { Injectable } from "@angular/core";
-import { BehaviorSubject, Observable, Subject } from "rxjs";
+import { createStore, withProps, select } from "@ngneat/elf";
+import { Observable } from "rxjs";
 import { FontFaceService } from "./font-face.service";
+import { v4 as uuidv4 } from "uuid";
 
+// =========================
+// Definiciones de interfaces
+// =========================
 interface PresentationConfig {
   fontSize: number;
   backgroundColor: string;
@@ -12,15 +17,15 @@ interface PresentationConfig {
   isWindowOpen: boolean;
 }
 
-interface PresentationContent {
-  type: "verse" | "song" | "announcement" | "image";
-  content: any;
+export interface VerseData {
+  text: string;
+  reference?: string;
+}
+
+export interface PresentationContent {
+  type: "verse";
+  content: VerseData;
   timestamp: number;
-  metadata?: {
-    title?: string;
-    subtitle?: string;
-    reference?: string;
-  };
 }
 
 interface WindowPosition {
@@ -38,21 +43,9 @@ interface PresentationState {
   error: string | null;
 }
 
-interface PresentationAcknowledgement {
-  id: string;
-  status: "success" | "error";
-  message?: string;
-}
-
-@Injectable({
-  providedIn: "root",
-})
-export class PresentationService {
-  private channel: BroadcastChannel = new BroadcastChannel("presentation");
-  private presentationWindow: Window | null = null;
-
-  // Principal states
-  private config = new BehaviorSubject<PresentationConfig>({
+// Estado inicial
+const initialState: PresentationState = {
+  config: {
     fontSize: 32,
     backgroundColor: "#000000",
     textColor: "#ffffff",
@@ -60,264 +53,429 @@ export class PresentationService {
     fontFamily: "Arial",
     isFullScreen: false,
     isWindowOpen: false,
-  });
-
-  private windowState = new BehaviorSubject<WindowPosition>({
+  },
+  windowState: {
     x: 0,
     y: 0,
     width: 800,
     height: 600,
-  });
+  },
+  currentContent: null,
+  contentHistory: [],
+  error: null,
+};
 
-  
-  private currentContent = new BehaviorSubject<PresentationContent | null>(
-    null
-  );
-  private contentHistory: PresentationContent[] = [];
-  private error = new Subject<string>();
+// Store
+const presentationStore = createStore(
+  { name: "presentation" },
+  withProps<PresentationState>(initialState)
+);
+
+@Injectable({
+  providedIn: "root",
+})
+export class PresentationService {
+  private isConnected = false;
+  private channel: BroadcastChannel;
+  private presentationWindow: Window | null = null;
+  private senderId: string;
+  private reconnectionTimer: any = null;
+  private pingInterval: any = null;
+  private heartbeatMissed = 0;
+  private readonly MAX_MISSED_HEARTBEATS = 3;
+  private readonly HEARTBEAT_INTERVAL = 2000;
   private contentQueue: PresentationContent[] = [];
   private isTransitioning = false;
-
-  private acknowledgements = new Map<
-    string,
-    (ack: PresentationAcknowledgement) => void
-  >();
+  private lastTimestamp = 0;
+  private timestampCounter = 0;
   private reconnectAttempts = 0;
   private readonly MAX_RECONNECT_ATTEMPTS = 3;
 
   constructor(private fontFaceService: FontFaceService) {
+    this.senderId = uuidv4();
+    this.channel = new BroadcastChannel("presentation");
+    this.initializeService();
+  }
+
+  // =========================
+  // Inicialización
+  // =========================
+  private initializeService(): void {
     this.initializeListeners();
     this.loadSavedState();
     this.setupChannelErrorHandling();
-    this.setupKeyboardShortcuts();
+    this.startHeartbeat();
     this.preloadFonts();
   }
 
-  /**
-   * Carga las fuentes de Google Fonts para pre-cargarlas
-   * @returns Promise<void>
-   */
+  private setupChannelErrorHandling(): void {
+    // Manejar errores del canal de mensajes
+    this.channel.addEventListener("messageerror", (event) => {
+      console.error("Error en el canal de mensajes:", event);
+      this.handleError("Error en la comunicación entre ventanas");
+    });
+
+    // Manejar errores generales
+    window.addEventListener("unhandledrejection", (event) => {
+      if (
+        event.reason &&
+        typeof event.reason === "object" &&
+        "target" in event.reason
+      ) {
+        const target = (event.reason as any).target;
+        if (target === this.channel || target === this.presentationWindow) {
+          console.error("Error no manejado en la presentación:", event.reason);
+          this.handleError("Error inesperado en la presentación");
+        }
+      }
+    });
+
+    // Manejar cierre inesperado de la ventana
+    window.addEventListener("beforeunload", () => {
+      this.cleanup();
+    });
+
+    // Monitorear el estado del canal
+    const channelStateCheck = setInterval(() => {
+      this.isChannelHealthy().then((healthy) => {
+        if (!healthy) {
+          console.error("El canal no está saludable.");
+          this.recreateChannel();
+          this.reconnectAttempts++;
+          if (this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
+            clearInterval(channelStateCheck);
+            this.handleError("No se pudo mantener la comunicación con la ventana de presentación.");
+          }
+        }
+      });
+    }, 10000); // Verificar cada 10 segundos
+  }
+
+  private recreateChannel(): void {
+    try {
+      // Cerrar el canal existente
+      this.channel.close();
+
+      // Crear un nuevo canal
+      this.channel = new BroadcastChannel("presentation");
+
+      // Reinicializar los listeners
+      this.initializeListeners();
+
+      console.log("Canal recreado exitosamente");
+
+      // Reintentar la conexión
+      if (this.isWindowOpen()) {
+        this.sendInitialState();
+      }
+    } catch (error) {
+      console.error("Error al recrear el canal:", error);
+      this.handleError("Error al restablecer la comunicación");
+    }
+  }
+
+  // Método auxiliar para verificar el estado del canal
+  private async isChannelHealthy(): Promise<boolean> {
+    try {
+      // Intentar enviar un mensaje de prueba
+      this.channel.postMessage({
+        type: "healthCheck",
+        timestamp: Date.now(),
+        senderId: this.senderId,
+      });
+      return true;
+    } catch (error) {
+      console.error("Error en la verificación de salud del canal:", error);
+      return false;
+    }
+  }
+
   private async preloadFonts(): Promise<void> {
     const fontsToLoad = [
-      { family: 'Roboto', source: 'https://fonts.googleapis.com/css2?family=Roboto&display=swap' },
-      { family: 'Open Sans', source: 'https://fonts.googleapis.com/css2?family=Open+Sans&display=swap' },
-      { family: 'Lato', source: 'https://fonts.googleapis.com/css2?family=Lato&display=swap' },
-      { family: 'Montserrat', source: 'https://fonts.googleapis.com/css2?family=Montserrat&display=swap' },
-      { family: 'Source Sans Pro', source: 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro&display=swap' },
+      {
+        family: "Roboto",
+        source: "https://fonts.googleapis.com/css2?family=Roboto&display=swap",
+      },
     ];
 
     try {
       await Promise.all(
-        fontsToLoad.map((font) => this.fontFaceService.loadFontsFromCss(font.source))
+        fontsToLoad.map((font) =>
+          this.fontFaceService.loadFontsFromCss(font.source)
+        )
       );
       await Promise.all(
         fontsToLoad.map((font) => this.fontFaceService.waitForFont(font.family))
       );
-      console.log('Fuentes pre-cargadas exitosamente');
+      console.log("Fuentes precargadas exitosamente");
     } catch (error) {
-      console.error('Error al pre-cargar fuentes:', error);
+      console.error("Error al precargar fuentes:", error);
     }
   }
 
-  private initializeListeners(): void {
-    window.addEventListener("beforeunload", () => this.cleanup());
-    document.addEventListener("fullscreenchange", () => {
-      this.updateConfig({ isFullScreen: !!document.fullscreenElement });
-    });
+  // =========================
+  // Sistema de Heartbeat
+  // =========================
+  private startHeartbeat(): void {
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+    }
 
-    this.channel.onmessage = (event) => this.handleChannelMessage(event);
+    this.pingInterval = setInterval(() => {
+      if (this.isWindowOpen()) {
+        this.sendHeartbeat();
+        this.checkHeartbeat();
+      }
+    }, this.HEARTBEAT_INTERVAL);
+  }
+
+  private sendHeartbeat(): void {
+    this.channel.postMessage({
+      type: "heartbeat",
+      timestamp: Date.now(),
+      senderId: this.senderId,
+    });
+  }
+
+  private checkHeartbeat(): void {
+    if (!this.isConnected) return;
+
+    this.heartbeatMissed++;
+    if (this.heartbeatMissed >= this.MAX_MISSED_HEARTBEATS) {
+      console.warn(
+        `${this.MAX_MISSED_HEARTBEATS} heartbeats perdidos. Reconectando...`
+      );
+      this.handleConnectionLost();
+    }
+  }
+
+  private resetHeartbeat(): void {
+    this.heartbeatMissed = 0;
   }
 
   /**
-   * Envía el estado inicial a la ventana de presentación
-   * @returns void
+   * Actualiza el contenido actual mostrado
    */
+  public updateCurrentContent(newContent: PresentationContent | null): void {
+    console.log("Actualizando contenido en el store (Ventana):", newContent); // DEBUG
+
+    presentationStore.update((state) => ({
+      ...state,
+      currentContent: newContent,
+    }));
+    this.saveState();
+  }
+
+  // =========================
+  // Manejo de Conexión
+  // =========================
+  private initializeListeners(): void {
+    this.channel.onmessage = (event) => {
+      const { type, senderId } = event.data;
+
+      if (senderId === this.senderId) return;
+
+      this.resetHeartbeat();
+      this.resetReconnectionTimer();
+
+      if (!this.isConnected && type === "pong") {
+        this.isConnected = true;
+        this.sendInitialState();
+      }
+
+      this.handleChannelMessage(event);
+    };
+  }
+
+  public applyConfig(config: Partial<PresentationConfig>): void {
+    presentationStore.update((state) => ({
+      ...state,
+      config: { ...state.config, ...config },
+    }));
+    this.saveState();
+  }
+
+  // ==================================================
+  // Manejo de la ventana secundaria y comunicación
+  // ==================================================
   private sendInitialState(): void {
+    if (!this.isConnected) {
+      console.log("No se envía estado inicial porque no hay conexión.");
+      return;
+    }
+
+    console.log("Enviando estado inicial"); // DEBUG
+    const st = presentationStore.query((s) => s);
     this.channel.postMessage({
       type: "init",
       data: {
-        config: this.config.getValue(),
-        content: this.currentContent.getValue(),
+        config: st.config,
+        content: st.currentContent,
       },
+      senderId: this.senderId,
     });
   }
 
-  private handleContentAcknowledgement(ack: PresentationAcknowledgement): void {
-    const handler = this.acknowledgements.get(ack.id);
-    if (handler) {
-      handler(ack);
-      this.acknowledgements.delete(ack.id);
-    }
+  private handleChannelMessage(event: MessageEvent): void {
+    const { type, data, senderId } = event.data;
 
-    if (ack.status === "error") {
-      this.error.next(ack.message || "Error en la presentación");
-      this.handlePresentationError();
+    if (senderId === this.senderId) return;
+
+    switch (type) {
+      case "ready":
+        console.log("Ventana secundaria lista");
+        this.isConnected = true;
+        this.sendInitialState();
+        break;
+      case "heartbeat":
+        this.channel.postMessage({
+          type: "pong",
+          timestamp: Date.now(),
+          senderId: this.senderId,
+        });
+        break;
+      case "pong":
+        this.isConnected = true;
+        break;
+      case "content":
+        this.handleContentUpdate(data);
+        break;
+      case "config":
+        this.applyConfig(data);
+        break;
+      case "contentAck":
+        // Manejar acknowledgment si es necesario
+        break;
+      case "error":
+        console.error("Error recibido desde la ventana secundaria:", data.message);
+        this.handleError(data.message);
+        break;
+      default:
+        console.warn("Tipo de mensaje desconocido recibido:", type);
     }
   }
 
-  /**
-   * Maneja los errores de la ventana de presentación
-   * @returns void
-   */
-  private handlePresentationError(): void {
+  private handleContentUpdate(content: PresentationContent): void {
+    console.log("Contenido recibido:", content);
+
+    // Validar el contenido recibido
+    if (!this.isValidContent(content)) {
+      console.error("Contenido inválido recibido:", content);
+      this.handleError("Contenido inválido recibido");
+      return;
+    }
+
+    try {
+      // Agregar el contenido a la cola si no está ya presente
+      if (!this.contentQueue.some(
+        (queuedContent) => queuedContent.timestamp === content.timestamp
+      )) {
+        this.contentQueue.push(content);
+      }
+
+      // Procesar la cola si no hay una transición en curso
+      if (!this.isTransitioning) {
+        this.processContentQueue().catch((error) => {
+          console.error("Error al procesar la cola de contenido:", error);
+          this.handleError("Error al procesar el contenido en cola");
+        });
+      }
+    } catch (error) {
+      console.error("Error al procesar actualización de contenido:", error);
+      this.handleError("Error al procesar el contenido");
+    }
+  }
+
+  // Método auxiliar para validar el contenido
+  private isValidContent(content: any): content is PresentationContent {
+    return (
+      content &&
+      typeof content === "object" &&
+      "type" in content &&
+      "content" in content &&
+      "timestamp" in content &&
+      typeof content.timestamp === "number" &&
+      content.type === "verse" &&
+      typeof content.content === "object" &&
+      "text" in content.content
+    );
+  }
+
+  // Método para manejar errores de forma centralizada
+  private handleError(message: string): void {
+    this.setError(message);
+
+    // Notificar el error a través del canal
+    this.channel.postMessage({
+      type: "error",
+      data: {
+        message,
+        timestamp: Date.now(),
+      },
+      senderId: this.senderId,
+    });
+
+    // Si el error es crítico, intentar reconectar
+    if (this.isWindowOpen() && !this.isConnected) {
+      this.handleConnectionLost();
+    }
+  }
+
+  private resetReconnectionTimer(): void {
+    if (this.reconnectionTimer) {
+      clearTimeout(this.reconnectionTimer);
+    }
+
+    this.reconnectionTimer = setTimeout(() => {
+      if (this.isWindowOpen() && !this.isConnected) {
+        this.handleConnectionLost();
+      }
+    }, 5000);
+  }
+
+  private async handleConnectionLost(): Promise<void> {
+    if (!this.isConnected) return; // Evitar múltiples reconexiones
+    this.isConnected = false;
+
     if (this.reconnectAttempts < this.MAX_RECONNECT_ATTEMPTS) {
       this.reconnectAttempts++;
-      this.reconnectPresentation();
+      try {
+        await this.reconnectPresentation();
+      } catch (error) {
+        console.error("Error en reconexión:", error);
+        this.setError("Error de conexión con la ventana de presentación");
+      }
     } else {
-      this.error.next("No se pudo reconectar con la ventana de presentación");
+      this.setError("Se perdió la conexión permanentemente");
       this.cleanup();
     }
   }
 
-  /**
-   * Intenta reconectar con la ventana de presentación
-   * @returns Promise<void>
-   */
-  private async reconnectPresentation(): Promise<void> {
-    this.closePresentationWindow();
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    await this.openPresentationWindow();
-  }
-
-  /*
-  ** Espera a que la ventana de presentación confirme la recepción del contenido
-  ** y devuelve un booleano indicando si fue exitoso
-  ** @param content Contenido a enviar
-  ** @returns Promise<boolean>
-  */
-  async waitForContentAcknowledgement(
-    content: PresentationContent
-  ): Promise<boolean> {
-    const id = crypto.randomUUID();
-
-    return new Promise((resolve) => {
-      const timeout = setTimeout(() => {
-        this.acknowledgements.delete(id);
-        resolve(false);
-      }, 5000);
-
-      this.acknowledgements.set(id, (ack) => {
-        clearTimeout(timeout);
-        resolve(ack.status === "success");
-      });
-
-      this.channel.postMessage({
-        type: "content",
-        id,
-        data: content,
-      });
-    });
-  }
-
-  private setupChannelErrorHandling(): void {
-    this.channel.addEventListener("messageerror", (event) => {
-      this.error.next("Error en la comunicación entre ventanas");
-      console.error("Channel message error:", event);
-    });
-  }
-
-  async syncState(): Promise<void> {
-    if (!this.isWindowOpen()) return;
-
-    const currentState = {
-      config: this.config.getValue(),
-      content: this.currentContent.getValue(),
-      history: this.contentHistory,
-    };
-
-    this.channel.postMessage({
-      type: "sync",
-      data: currentState,
-    });
-  }
-
-  async checkConnection(): Promise<boolean> {
-    if (!this.isWindowOpen()) return false;
-
-    return new Promise((resolve) => {
-      const timeout = setTimeout(() => resolve(false), 1000);
-
-      this.channel.postMessage({
-        type: "ping",
-        timestamp: Date.now(),
-      });
-
-      const handler = (event: MessageEvent) => {
-        if (event.data.type === "pong") {
-          clearTimeout(timeout);
-          this.channel.removeEventListener("message", handler);
-          resolve(true);
-        }
-      };
-
-      this.channel.addEventListener("message", handler);
-    });
-  }
-
-  private setupKeyboardShortcuts(): void {
-    window.addEventListener("keydown", (event) => {
-      if (event.ctrlKey || event.metaKey) {
-        switch (event.key) {
-          case "b": // Ctrl + B for black screen
-            event.preventDefault();
-            this.toggleBlackScreen();
-            break;
-          case "f": // Ctrl + F for fullscreen
-            event.preventDefault();
-            this.toggleFullScreen();
-            break;
-          case "w": // Ctrl + W to close window
-            event.preventDefault();
-            this.closePresentationWindow();
-            break;
-        }
-      }
-    });
-  }
-
-  /**
-   * Activa o desactiva la pantalla negra
-   * @returns void
-   */
-  toggleBlackScreen(): void {
-    this.channel.postMessage({
-      type: "blackscreen",
-      data: { active: true },
-    });
-  }
-
-  /**
-   * Maneja los mensajes recibidos por el canal de comunicación
-   * @param event Evento de mensaje
-   * @returns void
-   */
-  private handleChannelMessage(event: MessageEvent): void {
-    const { type, data } = event.data;
-    switch (type) {
-      case "ready":
-        this.sendInitialState();
-        break;
-      case "error":
-        this.error.next(data);
-        break;
-      case "windowState":
-        this.windowState.next(data);
-        break;
-      case "contentAck":
-        this.handleContentAcknowledgement(data);
-        break;
+  private async reconnectPresentation(): Promise<boolean> {
+    if (this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
+      return false;
     }
+    
+    await this.cleanup(); // Asegurarse de que la limpieza es completa
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Esperar 
+    return this.openPresentationWindow();
   }
 
-  /**
-   * Abre una nueva ventana de presentacións
-   * @param screenId ID de la pantalla a utilizar
-   * @returns Promise<boolean>
-   */
-  async openPresentationWindow(screenId?: number): Promise<boolean> {
-    if (this.presentationWindow && !this.presentationWindow.closed) {
-      this.presentationWindow.focus();
-      return true;
+  // =========================
+  // Manejo de Ventana
+  // =========================
+  public async openPresentationWindow(screenId?: number): Promise<boolean> {
+    if (this.presentationWindow) {
+      try {
+        const test = this.presentationWindow.closed;
+      } catch (error) {
+        this.presentationWindow = null;
+        this.isConnected = false;
+      }
+    }
+
+    if (this.presentationWindow?.closed) {
+      this.cleanup();
     }
 
     try {
@@ -327,8 +485,8 @@ export class PresentationService {
         : screens[screens.length - 1];
 
       const options = {
-        left: targetScreen ? (screen.width - targetScreen.availWidth) / 2 : 0, // Centrado horizontal
-        top: targetScreen ? (screen.height - targetScreen.availHeight) / 2 : 0, // Centrado vertical
+        left: targetScreen ? (screen.width - targetScreen.availWidth) / 2 : 0,
+        top: targetScreen ? (screen.height - targetScreen.availHeight) / 2 : 0,
         width: targetScreen?.availWidth || 800,
         height: targetScreen?.availHeight || 600,
         menubar: "no",
@@ -337,7 +495,6 @@ export class PresentationService {
         status: "no",
       };
 
-      // Abre la nueva ventana
       this.presentationWindow = window.open(
         "/presentation",
         "PresentationWindow",
@@ -346,182 +503,227 @@ export class PresentationService {
           .join(",")
       );
 
-      if (this.presentationWindow) {
-        this.updateConfig({ isWindowOpen: true });
-        this.watchWindowPosition();
-        return true;
+      if (!this.presentationWindow) {
+        throw new Error("No se pudo abrir la ventana de presentación");
       }
 
-      throw new Error("Failed to open presentation window");
+      this.updateConfig({ isWindowOpen: true });
+      this.watchWindowPosition();
+      this.startHeartbeat();
+
+      await this.waitForWindowReady();
+
+      this.reconnectAttempts = 0;
+      return true;
     } catch (error) {
-      //this.error.next(error.message);
-      console.error("Error opening presentation window:", error);
+      console.error("Error al abrir ventana:", error);
+      this.cleanup();
       return false;
     }
   }
 
-  /**
-   * Cierra la ventana de presentación actual
-   * @returns void
-   */
-  closePresentationWindow(): void {
+  private async waitForWindowReady(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let attempts = 0;
+      const maxAttempts = 50;
+      const interval = 100;
+
+      const checkReady = () => {
+        if (attempts >= maxAttempts) {
+          reject(new Error("Timeout esperando ventana"));
+          return;
+        }
+
+        if (this.isConnected) {
+          resolve();
+          return;
+        }
+
+        attempts++;
+        setTimeout(checkReady, interval);
+      };
+
+      checkReady();
+    });
+  }
+
+  public closePresentationWindow(): void {
     if (this.presentationWindow && !this.presentationWindow.closed) {
       this.presentationWindow.close();
     }
     this.cleanup();
   }
 
-  /**
-   * Envía contenido a la ventana de presentación
-   * @param content Contenido a enviar
-   * @returns Promise<void>
-   */
-  async sendContent(
-    content: Omit<PresentationContent, "timestamp">
-  ): Promise<void> {
-    const newContent: PresentationContent = {
-      ...content,
-      timestamp: Date.now(),
-    };
-
-    if (this.isTransitioning) {
-      this.contentQueue.push(newContent);
-      return;
+  // =========================
+  // Manejo de Contenido
+  // =========================
+  private getUniqueTimestamp(): number {
+    const now = Date.now();
+    if (now > this.lastTimestamp) {
+      this.lastTimestamp = now;
+      this.timestampCounter = 0;
+    } else {
+      this.timestampCounter++;
     }
-
-    await this.transitionContent(newContent);
+    return this.lastTimestamp + this.timestampCounter;
   }
 
-  /**
-   * Transiciona el contenido actual a uno nuevo
-   * @param content Nuevo contenido a mostrar
-   */
-  private async transitionContent(content: PresentationContent): Promise<void> {
-    this.isTransitioning = true;
-    this.contentHistory.push(content);
+  public async sendContent(
+    content: Omit<PresentationContent, "timestamp">
+  ): Promise<void> {
+    if (!this.isWindowOpen()) {
+      const opened = await this.openPresentationWindow();
+      if (!opened) {
+        this.setError("No se pudo abrir la ventana");
+        return;
+      }
+    }
 
+    if (!this.isConnected) {
+      await this.waitForWindowReady();
+    }
+
+    const newContent: PresentationContent = {
+      ...content,
+      timestamp: this.getUniqueTimestamp(),
+    };
+
+    // Verificar si el contenido ya está en la cola
+    if (!this.contentQueue.some(
+      (queuedContent) => queuedContent.timestamp === newContent.timestamp
+    )) {
+      if (this.contentQueue.length >= 100) { // Límite de 100 contenidos en cola
+        console.warn("La cola de contenido ha alcanzado su límite máximo.");
+        this.contentQueue.shift(); // Eliminar el contenido más antiguo
+      }
+
+      if (this.isTransitioning) {
+        this.contentQueue.push(newContent);
+      } else {
+        await this.transitionContent(newContent);
+      }
+    } else {
+      console.warn("El contenido ya está en la cola:", newContent);
+    }
+  }
+
+  private async transitionContent(content: PresentationContent): Promise<void> {
+    if (this.isTransitioning) return; // Evita iniciar otra transición
+  
+    this.isTransitioning = true;
+    this.pushToContentHistory(content);
+  
+    // Envía el contenido al canal
     this.channel.postMessage({
       type: "content",
       data: content,
+      senderId: this.senderId,
     });
-
+  
+    // Espera el tiempo de transición
     await this.waitForTransition();
-    this.currentContent.next(content);
+    this.updateCurrentContent(content);
     this.isTransitioning = false;
-
+  
+    // Procesar el siguiente contenido en la cola
     if (this.contentQueue.length > 0) {
-      const nextContent = this.contentQueue.shift()!;
-      await this.transitionContent(nextContent);
+      this.processContentQueue().catch((error) => {
+        console.error("Error al procesar la cola de contenido:", error);
+        this.handleError("Error al procesar el contenido en cola");
+      });
     }
   }
+  
 
-  /**
-   * Espera a que termine la transición actual antes de continuar
-   * @returns Promise<void>
-   */
-  private async waitForTransition(): Promise<void> {
-    return new Promise((resolve) =>
-      setTimeout(resolve, this.config.getValue().transition)
-    );
-  }
-
-  /**
-   * Actualiza la configuración actual
-   * @param newConfig Nueva configuración a aplicar
-   * @returns void
-   */
-  updateConfig(newConfig: Partial<PresentationConfig>): void {
-    const currentConfig = this.config.getValue();
-    const updatedConfig = { ...currentConfig, ...newConfig };
-
-    this.config.next(updatedConfig);
-    this.saveState();
-
-    this.channel.postMessage({
-      type: "config",
-      data: updatedConfig,
-    });
-  }
-
-  /**
-   * Guarda el estado actual en el almacenamiento local
-   * @returns void
-   */
-  private saveState(): void {
-    const state: PresentationState = {
-      config: this.config.getValue(),
-      windowState: this.windowState.getValue(),
-      currentContent: this.currentContent.getValue(),
-      contentHistory: this.contentHistory,
-      error: null,
-    };
-
-    localStorage.setItem("presentationState", JSON.stringify(state));
-  }
-
-  /**
-   * Carga el estado guardado previamente
-   * @returns void
-   */
-  private loadSavedState(): void {
-    try {
-      const saved = localStorage.getItem("presentationState");
-      if (saved) {
-        const state: PresentationState = JSON.parse(saved);
-        this.config.next(state.config);
-        this.windowState.next(state.windowState);
-        this.currentContent.next(state.currentContent);
-        this.contentHistory = state.contentHistory;
-      }
-    } catch (error) {
-      console.error("Error loading saved state:", error);
-    }
-  }
-
-  /**
-   * Activa o desactiva el modo de pantalla completa
-   * @returns Promise<void>
-   */
-  async toggleFullScreen(): Promise<void> {
-    if (!this.presentationWindow) return;
-
-    try {
-      if (!document.fullscreenElement) {
-        await this.presentationWindow.document.documentElement.requestFullscreen();
-      } else {
-        await document.exitFullscreen();
-      }
-    } catch (error) {
-      this.error.next("Error toggling fullscreen");
-    }
-  }
-
-  /**
-   * Obtiene la lista de pantallas disponibles
-   * @returns Promise<Screen[]>
-   */
-  private async getAvailableScreens(): Promise<Screen[]> {
-    if ("getScreenDetails" in window.screen) {
+  private async processContentQueue(): Promise<void> {
+    if (this.isTransitioning) return; // Evita procesamiento simultáneo
+    
+    while (this.contentQueue.length > 0 && !this.isTransitioning) {
+      const content = this.contentQueue[0]; // No remover hasta después de procesar
       try {
-        return await (window.screen as any).getScreenDetails();
+        await this.transitionContent(content); // Esperar la transición
+        this.contentQueue.shift(); // Remover solo después de éxito
       } catch (error) {
-        console.error("Error getting screen details:", error);
-        return [];
+        console.error("Error procesando contenido:", error);
+        break; // Detener el procesamiento en caso de error
       }
     }
-    return [];
+  }
+  
+
+  private async waitForTransition(): Promise<void> {
+    const transitionTime = presentationStore.query(
+      (state) => state.config.transition
+    );
+    return new Promise((resolve) => setTimeout(resolve, transitionTime));
   }
 
-  /**
-   * Observa la posición de la ventana de presentación
-   * @returns void
-   */
+  // =========================
+  // Observables y Estado
+  // =========================
+  get config$(): Observable<PresentationConfig> {
+    return presentationStore.pipe(select((state) => state.config));
+  }
+
+  get windowState$(): Observable<WindowPosition> {
+    return presentationStore.pipe(select((state) => state.windowState));
+  }
+
+  get currentContent$(): Observable<PresentationContent | null> {
+    return presentationStore.pipe(select((state) => state.currentContent));
+  }
+
+  get error$(): Observable<string | null> {
+    return presentationStore.pipe(select((state) => state.error));
+  }
+
+  public updateConfig(newConfig: Partial<PresentationConfig>): void {
+    presentationStore.update((state) => ({
+      ...state,
+      config: { ...state.config, ...newConfig },
+    }));
+    this.saveState();
+  }
+
+  private updateWindowState(newWindowState: Partial<WindowPosition>): void {
+    presentationStore.update((state) => ({
+      ...state,
+      windowState: { ...state.windowState, ...newWindowState },
+    }));
+    this.saveState();
+  }
+
+  private pushToContentHistory(content: PresentationContent): void {
+    presentationStore.update((state) => {
+      const updatedHistory = [...state.contentHistory, content];
+      if (updatedHistory.length > 50) {
+        updatedHistory.shift();
+      }
+      return {
+        ...state,
+        contentHistory: updatedHistory,
+      };
+    });
+    this.saveState();
+  }
+
+  private setError(errorMsg: string | null): void {
+    presentationStore.update((state) => ({
+      ...state,
+      error: errorMsg,
+    }));
+    this.saveState();
+  }
+
+  // =========================
+  // Utilidades
+  // =========================
   private watchWindowPosition(): void {
     if (!this.presentationWindow) return;
 
     const checkPosition = () => {
       if (this.presentationWindow && !this.presentationWindow.closed) {
-        this.windowState.next({
+        this.updateWindowState({
           x: this.presentationWindow.screenX,
           y: this.presentationWindow.screenY,
           width: this.presentationWindow.outerWidth,
@@ -534,46 +736,110 @@ export class PresentationService {
     checkPosition();
   }
 
-  /**
-   * Limpia el estado de la ventana de presentación
-   * @returns void
-   */
+  private async getAvailableScreens(): Promise<Screen[]> {
+    if ("getScreenDetails" in window.screen) {
+      try {
+        return await (window.screen as any).getScreenDetails();
+      } catch (error) {
+        console.error("Error obteniendo detalles de pantalla:", error);
+        return [];
+      }
+    }
+    return [];
+  }
+
   private cleanup(): void {
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null; // Asegurarse de que se limpia
+    }
+    if (this.reconnectionTimer) {
+      clearTimeout(this.reconnectionTimer);
+      this.reconnectionTimer = null; // Asegurarse de que se limpia
+    }
+
     this.presentationWindow = null;
+    this.isConnected = false;
     this.updateConfig({ isWindowOpen: false, isFullScreen: false });
-    this.currentContent.next(null);
+    this.updateCurrentContent(null);
     this.contentQueue = [];
     this.saveState();
   }
 
-  // Observables
-  get config$(): Observable<PresentationConfig> {
-    return this.config.asObservable();
+  // ============================
+  // Persistencia en localStorage
+  // ============================
+  private saveState(): void {
+    const state = presentationStore.query((s) => s);
+    localStorage.setItem("presentationState", JSON.stringify(state));
+    //console.log("Estado guardado:", state); // DEBUG
   }
 
-  get windowState$(): Observable<WindowPosition> {
-    return this.windowState.asObservable();
+  private loadSavedState(): void {
+    try {
+      const saved = localStorage.getItem("presentationState");
+      if (saved) {
+        const state: PresentationState = JSON.parse(saved);
+        presentationStore.update(() => state);
+        //console.log("Estado cargado:", state); // DEBUG
+      }
+    } catch (error) {
+      console.error("Error loading saved state:", error);
+    }
   }
 
-  get currentContent$(): Observable<PresentationContent | null> {
-    return this.currentContent.asObservable();
-  }
-
-  get error$(): Observable<string> {
-    return this.error.asObservable();
-  }
-
+  // =======================
+  // Métodos auxiliares
+  // =======================
   clearContent(): void {
-    this.currentContent.next(null);
+    // Limpia contenido actual y cola
+    this.updateCurrentContent(null);
     this.contentQueue = [];
-    this.channel.postMessage({ type: "clear" });
+    this.channel.postMessage({ type: "clear", senderId: this.senderId });
   }
 
   getContentHistory(): PresentationContent[] {
-    return [...this.contentHistory];
+    return presentationStore.query((s) => s.contentHistory);
   }
 
   isWindowOpen(): boolean {
-    return this.presentationWindow !== null && !this.presentationWindow.closed;
+    const st = presentationStore.query((s) => s);
+    return (
+      this.presentationWindow !== null &&
+      !this.presentationWindow.closed &&
+      st.config.isWindowOpen
+    );
+  }
+
+  // Enviar mensaje de ready con senderId
+  sendReadyMessage(): void {
+    console.log("Enviando mensaje ready");
+    this.channel.postMessage({
+      type: "ready",
+      senderId: this.senderId,
+    });
+  }
+
+  /**
+   * Envía un mensaje genérico a través del canal con senderId
+   * @param message El mensaje a enviar
+   */
+  public sendMessage(message: any): void {
+    this.channel.postMessage({ ...message, senderId: this.senderId });
+  }
+
+  /**
+   * Envía un acknowledgment de contenido
+   * @param content El contenido a reconocer
+   */
+  public sendContentAcknowledgement(content: PresentationContent): void {
+    this.channel.postMessage({
+      type: "contentAck",
+      data: {
+        id: content.timestamp.toString(),
+        status: "success",
+      },
+      senderId: this.senderId,
+    });
   }
 }

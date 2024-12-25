@@ -4,6 +4,7 @@ import { CommonModule } from "@angular/common";
 // Services
 import { BibleStateService } from "../../services/bible-state.service";
 import { BibleService } from "../../services/bible.service";
+import { PresentationService } from "../../services/presentation.service";
 
 // Constantes
 import { books, Book, Version, getVersionName } from "../../constants";
@@ -12,6 +13,12 @@ import { books, Book, Version, getVersionName } from "../../constants";
 import { TestamentSelectorComponent } from "../../components/testament-selector/testament-selector.component";
 import { VersionChaptersComponent } from "../../components/version-chapters/version-chapters.component";
 import { VersePanelComponent } from "../../components/verse-panel/verse-panel.component";
+
+// interfaces
+interface VerseData {
+  text: string;
+  reference?: string;
+}
 
 @Component({
   selector: "app-bible",
@@ -56,6 +63,8 @@ import { VersePanelComponent } from "../../components/verse-panel/verse-panel.co
           [selectedChapter]="selectedChapter"
           [selectedVersion]="selectedVersion"
           [verses]="verses"
+          (verseClicked)="onVerseClicked($event)"
+
         ></app-verse-panel>
       </div>
     </div>
@@ -96,7 +105,8 @@ export class BibleComponent implements OnInit {
 
   constructor(
     private bibleService: BibleService,
-    private bibleStateService: BibleStateService
+    private bibleStateService: BibleStateService,
+    private presentationService: PresentationService
   ) {}
 
   ngOnInit(): void {
@@ -221,4 +231,15 @@ export class BibleComponent implements OnInit {
         },
       });
   }
+
+  onVerseClicked(verseData: VerseData): void {
+    console.log("Verso recibido en BibleComponent:", verseData); // Debug
+
+    this.presentationService.sendContent({
+      type: "verse",
+      content: verseData,
+      // El timestamp se añade automáticamente en el servicio
+    });
+  }
+  
 }

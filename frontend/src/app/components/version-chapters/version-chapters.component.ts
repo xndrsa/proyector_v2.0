@@ -8,6 +8,15 @@ import {
 } from "@angular/core";
 import { Book, Version } from "../../constants";
 
+const VERSION_SIGLAS: { [key: string]: string } = {
+  reinavalera1960: "RV1960",
+  reinavalera1995: "RV1995",
+  nuevaversioninternacional: "NVI",
+  dioshablahoy: "DHH",
+  palabradediosparatodos: "PDT",
+  kingjamesversion: "KJV",
+};
+
 @Component({
   selector: "app-version-chapters",
   standalone: true,
@@ -46,7 +55,7 @@ import { Book, Version } from "../../constants";
               }"
               class="py-2 text-xs rounded animated-hover border"
             >
-              {{ v.name }}
+              {{ getSiglas(v.id) }}
             </button>
           </div>
         </ng-container>
@@ -175,5 +184,9 @@ export class VersionChaptersComponent {
 
     this.selectedChapter = chapter;
     this.chapterSelected.emit(chapter);
+  }
+
+  getSiglas(versionId: string): string {
+    return (VERSION_SIGLAS[versionId] || versionId).toUpperCase();
   }
 }
